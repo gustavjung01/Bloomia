@@ -32,6 +32,7 @@ Vì vậy Bloomia cần hỗ trợ:
 - Bán sản phẩm mẫu hoặc đơn tùy chỉnh theo ngân sách khách.
 - Cấu hình thủ công cho chủ tiệm.
 - AI dialog tư vấn trend, kinh doanh, cách cắm hoa và nội dung bán hàng.
+- AI theo từng tab/module, mỗi tab có data store riêng và popup card tư vấn riêng.
 
 ## Tài liệu chính
 
@@ -39,6 +40,7 @@ Vì vậy Bloomia cần hỗ trợ:
 - [Execution Plan](docs/01_EXECUTION_PLAN.md)
 - [AI Dialog & Web Config](docs/02_AI_DIALOG_AND_WEB_CONFIG.md)
 - [Backlog Module Lớn](docs/03_BACKLOG.md)
+- [AI Per-Tab Popup & Data Store Plan](docs/04_AI_TAB_DATA_STORES.md)
 
 ## Công nghệ đề xuất
 
