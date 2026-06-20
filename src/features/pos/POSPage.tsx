@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, PillTabs, SelectField, SoftCard, TextArea, TextField } from '../../components/ui';
 import type { ItemRecord, ShopSettingsRecord } from '../../db/repositories/manualSetupRepository';
 import { getShopSettings, listItems } from '../../db/repositories/manualSetupRepository';
+import { loadPhotoMap } from '../../db/repositories/photoStore';
 import { getPrinterSettings } from '../../db/repositories/printerRepository';
 import { listRecipes, type HydratedRecipe } from '../../db/repositories/recipesRepository';
 import { createSale, type HydratedSale, type PaymentMethod } from '../../db/repositories/salesRepository';
 import { calculateCartTotals, lineTotal, normalizeMoney, normalizeQuantity, type CartLine } from '../../services/pos/cart';
 import { renderInvoiceHtml } from '../../services/printing/invoiceTemplate';
 import { openPrintWindow } from '../../services/printing/printerService';
+import { resolveMediaUrl } from '../../services/system/systemService';
 import { createLocalId } from '../../utils/id';
 import { formatCurrency } from '../../utils/format';
 import { PrinterSettingsCard } from '../settings/PrinterSettingsCard';
@@ -32,6 +34,7 @@ export function POSPage() {
   const [mode, setMode] = useState<OrderMode>('counter');
   const [items, setItems] = useState<ItemRecord[]>([]);
   const [recipes, setRecipes] = useState<HydratedRecipe[]>([]);
+  const [itemPhotoUrls, setItemPhotoUrls] = useState<{ [key: string]: string }>({});
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -51,10 +54,15 @@ export function POSPage() {
   async function loadCatalog() {
     try {
       setError('');
-      const data = await Promise.all([listItems(), listRecipes(), getShopSettings()]);
+      const data = await Promise.all([listItems(), listRecipes(), getShopSettings(), loadPhotoMap()]);
       setItems(data[0]);
       setRecipes(data[1]);
       setShop(data[2]);
+      const urls: { [key: string]: string } = {};
+      for (const [itemId, path] of Object.entries(data[3])) {
+        urls[itemId] = await resolveMediaUrl(path);
+      }
+      setItemPhotoUrls(urls);
     } catch (caught) {
       console.error(caught);
       setError('Không tải được sản phẩm/công thức. Hãy dùng npm run tauri:dev.');
@@ -139,7 +147,7 @@ export function POSPage() {
         <SoftCard className="span-4" title="Thanh toán" description="POS chỉ hiển thị thông tin cần chốt đơn."><div className="pos-summary"><div className="pos-total-row"><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div><TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} /><TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} /><SelectField label="Thanh toán" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} /><div className="pos-total-row pos-grand-total"><span>Tổng cộng</span><strong>{formatCurrency(totals.total)}</strong></div><Button onClick={handleCheckout}>Lưu hóa đơn</Button><Button variant="soft" onClick={handlePrintLastSale} disabled={!lastSale}>Preview / In hóa đơn cuối</Button></div></SoftCard>
         <SoftCard className="span-8" title="Mẫu hoa" description="Chọn recipe để bung thành phần vào giỏ, rồi sửa linh hoạt."><div className="pos-product-grid">{recipes.map((recipe) => <button key={recipe.id} type="button" className="pos-product-card" onClick={() => addRecipe(recipe)}><Badge tone="pink">{recipe.size_label ?? 'Mẫu'}</Badge><strong>{recipe.name}</strong><span>{recipe.color_tone ?? 'Chưa tone'} • vốn tạm {formatCurrency(recipe.estimated_cost)}</span><span>{formatCurrency(recipe.suggested_sale_price)}</span></button>)}</div></SoftCard>
         <SoftCard className="span-4" title="Dòng tùy chỉnh" description="Dùng cho đơn theo ngân sách khách."><div className="setup-form-grid"><TextField label="Tên dòng" value={customName} onChange={(event) => setCustomName(event.target.value)} /><TextField label="Giá bán" type="number" min={0} value={customPrice} onChange={(event) => setCustomPrice(event.target.value)} /><Button variant="soft" onClick={addCustomLine}>Thêm dòng tùy chỉnh</Button></div></SoftCard>
-        <SoftCard className="span-12" title="Chọn sản phẩm / dịch vụ" description="Dữ liệu lấy từ Cài đặt → Hàng hóa & dịch vụ."><div className="pos-product-grid">{visibleItems.map((item) => <button key={item.id} type="button" className="pos-product-card" onClick={() => addCatalogItem(item)}><Badge tone={item.item_type === 'service' ? 'sage' : 'lavender'}>{item.item_type === 'service' ? 'Dịch vụ' : item.category_name ?? 'Sản phẩm'}</Badge><strong>{item.name}</strong><span>{formatCurrency(item.default_sale_price)}</span></button>)}</div></SoftCard>
+        <SoftCard className="span-12" title="Chọn sản phẩm / dịch vụ" description="Dữ liệu lấy từ Cài đặt → Hàng hóa & dịch vụ."><div className="pos-product-grid">{visibleItems.map((item) => <button key={item.id} type="button" className="pos-product-card" onClick={() => addCatalogItem(item)}>{itemPhotoUrls[item.id] && <img className="pos-product-image" src={itemPhotoUrls[item.id]} alt={item.name} />}<Badge tone={item.item_type === 'service' ? 'sage' : 'lavender'}>{item.item_type === 'service' ? 'Dịch vụ' : item.category_name ?? 'Sản phẩm'}</Badge><strong>{item.name}</strong><span>{formatCurrency(item.default_sale_price)}</span></button>)}</div></SoftCard>
         <SoftCard className="span-12" title="Chi tiết đơn hàng" description="Recipe có thể sửa số lượng/thành phần trước khi lưu."><div className="pos-cart-list">{cart.length === 0 && <p className="setup-muted">Chưa có dòng nào trong đơn.</p>}{cart.map((line) => <div className="pos-cart-row" key={line.id}><div className="pos-cart-name"><strong>{line.itemName}</strong><span>{line.isCustom ? line.note ?? 'Dòng tùy chỉnh' : line.note || 'Từ danh mục'}</span></div><TextField label="SL" type="number" min={0.01} step={0.01} value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} /><TextField label="Giá" type="number" min={0} value={line.unitPrice} onChange={(event) => updateLine(line.id, { unitPrice: Number(event.target.value) })} /><div className="pos-line-total"><span>Thành tiền</span><strong>{formatCurrency(lineTotal(line))}</strong></div><Button variant="ghost" onClick={() => removeLine(line.id)}>Xóa</Button></div>)}</div></SoftCard>
         <PrinterSettingsCard />
       </div>
