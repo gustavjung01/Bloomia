@@ -74,25 +74,8 @@ export function POSPage() {
 
   function addRecipe(recipe: HydratedRecipe) {
     const groupId = createLocalId('recipe-cart');
-    const parentLine: CartLine = {
-      id: groupId,
-      itemId: null,
-      itemName: recipe.name,
-      quantity: 1,
-      unitPrice: recipe.suggested_sale_price,
-      costPrice: recipe.estimated_cost,
-      isCustom: true,
-      note: `Mẫu hoa • ${recipe.size_label ?? ''} • ${recipe.color_tone ?? ''}`,
-    };
-    const ingredientLines: CartLine[] = recipe.items.map((item) => ({
-      id: createLocalId('recipe-ingredient'),
-      itemId: item.item_id,
-      itemName: `↳ ${item.item_name}`,
-      quantity: item.quantity,
-      unitPrice: 0,
-      costPrice: item.default_sale_price,
-      note: `Thành phần của ${recipe.name}`,
-    }));
+    const parentLine: CartLine = { id: groupId, itemId: null, itemName: recipe.name, quantity: 1, unitPrice: recipe.suggested_sale_price, costPrice: recipe.estimated_cost, isCustom: true, note: `Mẫu hoa • ${recipe.size_label ?? ''} • ${recipe.color_tone ?? ''}` };
+    const ingredientLines: CartLine[] = recipe.items.map((item) => ({ id: createLocalId('recipe-ingredient'), itemId: item.item_id, itemName: `↳ ${item.item_name}`, quantity: item.quantity, unitPrice: 0, costPrice: item.default_sale_price, note: `Thành phần của ${recipe.name}` }));
     setCart((current) => [...current, parentLine, ...ingredientLines]);
     setStatus(`Đã thêm mẫu ${recipe.name}. Có thể sửa số lượng/thành phần trong chi tiết đơn.`);
   }
@@ -119,16 +102,7 @@ export function POSPage() {
       setStatus('Đang lưu hóa đơn...');
       setError('');
       const paidAmount = paymentMethod === 'debt' ? 0 : totals.total;
-      const sale = await createSale({
-        customerName, customerPhone, note,
-        subtotal: totals.subtotal,
-        discountAmount: totals.discountAmount,
-        shippingFee: totals.shippingFee,
-        total: totals.total,
-        paymentMethod,
-        paidAmount,
-        lines: cart.map((line) => ({ itemId: line.itemId, itemName: line.itemName, quantity: line.quantity, unitPrice: line.unitPrice, costPrice: line.costPrice ?? 0, note: line.note })),
-      });
+      const sale = await createSale({ customerName, customerPhone, note, subtotal: totals.subtotal, discountAmount: totals.discountAmount, shippingFee: totals.shippingFee, total: totals.total, paymentMethod, paidAmount, lines: cart.map((line) => ({ itemId: line.itemId, itemName: line.itemName, quantity: line.quantity, unitPrice: line.unitPrice, costPrice: line.costPrice ?? 0, note: line.note })) });
       setLastSale(sale);
       setCart([]);
       setCustomerName('');
@@ -162,15 +136,10 @@ export function POSPage() {
 
       <div className="page-grid">
         <SoftCard className="span-8" title="Thông tin khách hàng" description="Có thể để trống nếu là khách lẻ."><div className="page-grid"><div className="span-6"><TextField label="Khách hàng" value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div><div className="span-6"><TextField label="SĐT" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} /></div><div className="span-12"><TextArea label="Ghi chú đơn" value={note} placeholder="Tone màu, dịp tặng, lời nhắn thiệp..." onChange={(event) => setNote(event.target.value)} /></div></div></SoftCard>
-
-        <SoftCard className="span-4" title="Thanh toán" description="Tính tiền theo dữ liệu giỏ hàng."><div className="pos-summary"><div className="pos-total-row"><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div><TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} /><TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} /><SelectField label="Thanh toán" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} /><div className="pos-total-row pos-grand-total"><span>Tổng cộng</span><strong>{formatCurrency(totals.total)}</strong></div><div className="pos-total-row"><span>Lời tạm tính</span><strong>{formatCurrency(totals.estimatedProfit)}</strong></div><Button onClick={handleCheckout}>Lưu hóa đơn</Button><Button variant="soft" onClick={handlePrintLastSale} disabled={!lastSale}>Preview / In hóa đơn cuối</Button></div></SoftCard>
-
+        <SoftCard className="span-4" title="Thanh toán" description="POS chỉ hiển thị thông tin cần chốt đơn."><div className="pos-summary"><div className="pos-total-row"><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div><TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} /><TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} /><SelectField label="Thanh toán" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} /><div className="pos-total-row pos-grand-total"><span>Tổng cộng</span><strong>{formatCurrency(totals.total)}</strong></div><Button onClick={handleCheckout}>Lưu hóa đơn</Button><Button variant="soft" onClick={handlePrintLastSale} disabled={!lastSale}>Preview / In hóa đơn cuối</Button></div></SoftCard>
         <SoftCard className="span-8" title="Mẫu hoa" description="Chọn recipe để bung thành phần vào giỏ, rồi sửa linh hoạt."><div className="pos-product-grid">{recipes.map((recipe) => <button key={recipe.id} type="button" className="pos-product-card" onClick={() => addRecipe(recipe)}><Badge tone="pink">{recipe.size_label ?? 'Mẫu'}</Badge><strong>{recipe.name}</strong><span>{recipe.color_tone ?? 'Chưa tone'} • vốn tạm {formatCurrency(recipe.estimated_cost)}</span><span>{formatCurrency(recipe.suggested_sale_price)}</span></button>)}</div></SoftCard>
-
         <SoftCard className="span-4" title="Dòng tùy chỉnh" description="Dùng cho đơn theo ngân sách khách."><div className="setup-form-grid"><TextField label="Tên dòng" value={customName} onChange={(event) => setCustomName(event.target.value)} /><TextField label="Giá bán" type="number" min={0} value={customPrice} onChange={(event) => setCustomPrice(event.target.value)} /><Button variant="soft" onClick={addCustomLine}>Thêm dòng tùy chỉnh</Button></div></SoftCard>
-
         <SoftCard className="span-12" title="Chọn sản phẩm / dịch vụ" description="Dữ liệu lấy từ Cài đặt → Hàng hóa & dịch vụ."><div className="pos-product-grid">{visibleItems.map((item) => <button key={item.id} type="button" className="pos-product-card" onClick={() => addCatalogItem(item)}><Badge tone={item.item_type === 'service' ? 'sage' : 'lavender'}>{item.item_type === 'service' ? 'Dịch vụ' : item.category_name ?? 'Sản phẩm'}</Badge><strong>{item.name}</strong><span>{formatCurrency(item.default_sale_price)}</span></button>)}</div></SoftCard>
-
         <SoftCard className="span-12" title="Chi tiết đơn hàng" description="Recipe có thể sửa số lượng/thành phần trước khi lưu."><div className="pos-cart-list">{cart.length === 0 && <p className="setup-muted">Chưa có dòng nào trong đơn.</p>}{cart.map((line) => <div className="pos-cart-row" key={line.id}><div className="pos-cart-name"><strong>{line.itemName}</strong><span>{line.isCustom ? line.note ?? 'Dòng tùy chỉnh' : line.note || 'Từ danh mục'}</span></div><TextField label="SL" type="number" min={0.01} step={0.01} value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} /><TextField label="Giá" type="number" min={0} value={line.unitPrice} onChange={(event) => updateLine(line.id, { unitPrice: Number(event.target.value) })} /><div className="pos-line-total"><span>Thành tiền</span><strong>{formatCurrency(lineTotal(line))}</strong></div><Button variant="ghost" onClick={() => removeLine(line.id)}>Xóa</Button></div>)}</div></SoftCard>
         <PrinterSettingsCard />
       </div>
