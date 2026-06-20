@@ -20,6 +20,18 @@ const aiModeOptions = [
   { label: 'Off - tắt AI', value: 'off' },
 ];
 
+function formatBytes(bytes?: number | null) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value >= 10 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
 export function SystemPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const itemFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -54,9 +66,22 @@ export function SystemPage() {
     [backups],
   );
 
+  const runtimeRows = [
+    { label: 'App version', value: status?.app_version ?? '—', strong: true },
+    { label: 'Backend runtime', value: 'Rust/Tauri đóng gói trong bloomia.exe', strong: true },
+    { label: 'Frontend DB client', value: 'sqlite:bloomia.db', strong: true },
+    { label: 'Dữ liệu shop', value: 'Nằm trong AppData, không nằm trong thư mục cài app', strong: true },
+  ];
+
+  const dbRows = [
+    { label: 'DB path', value: status?.database_path ?? '—', code: true },
+    { label: 'DB exists', value: status?.database_exists ? 'Có' : 'Chưa thấy file DB', strong: true },
+    { label: 'DB size', value: status?.database_exists ? formatBytes(status.database_size_bytes) : '0 B', strong: true },
+    { label: 'Pending restore', value: status?.pending_restore_exists ? 'Có, mở lại app để áp dụng' : 'Không', strong: true },
+  ];
+
   const pathRows = [
     { label: 'App data path', value: status?.app_data_dir ?? '—' },
-    { label: 'Database path', value: status?.database_path ?? '—' },
     { label: 'Media path', value: status?.media_dir ?? '—' },
     { label: 'Backup path', value: status?.backup_dir ?? '—' },
   ];
@@ -212,25 +237,45 @@ export function SystemPage() {
       <div className="page-grid">
         <SoftCard
           className="span-6"
-          title="Dữ liệu cục bộ"
-          description="Backend Rust nằm trong bloomia.exe. SQLite nằm trong AppData, không nằm trong folder cài đặt."
-          action={<Button variant="soft" onClick={handleOpenDataFolder}>Mở thư mục dữ liệu</Button>}
+          title="Audit runtime DB"
+          description="Backend Rust được đóng gói trong bloomia.exe. Dữ liệu shop nằm trong AppData, không nằm trong thư mục cài app."
+          action={<Button variant="soft" onClick={handleOpenDataFolder}>Mở AppData</Button>}
         >
+          <div className="setup-status-row" style={{ marginBottom: 16 }}>
+            <Badge tone={status?.database_exists ? 'sage' : 'peach'}>{status?.database_exists ? 'DB sẵn sàng' : 'Chưa thấy DB'}</Badge>
+            <Badge tone={status?.pending_restore_exists ? 'peach' : 'lavender'}>{status?.pending_restore_exists ? 'Có restore pending' : 'Không pending restore'}</Badge>
+          </div>
           <div className="system-info-list">
+            {dbRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                {row.code ? <code>{row.value}</code> : <strong>{row.value}</strong>}
+              </div>
+            ))}
+          </div>
+        </SoftCard>
+
+        <SoftCard className="span-6" title="Runtime app layout" description="Các path thật app đang dùng khi chạy trên máy khách.">
+          <div className="system-info-list">
+            {runtimeRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+              </div>
+            ))}
             {pathRows.map((row) => (
               <div key={row.label}>
                 <span>{row.label}</span>
                 <code>{row.value}</code>
               </div>
             ))}
-            <div>
-              <span>DB status</span>
-              <strong>{status?.database_exists ? 'Đã có DB' : 'Chưa thấy file DB'}</strong>
-            </div>
-            <div>
-              <span>Pending restore</span>
-              <strong>{status?.pending_restore_exists ? 'Có, mở lại app để áp dụng' : 'Không'}</strong>
-            </div>
+          </div>
+        </SoftCard>
+
+        <SoftCard className="span-6" title="Backup DB" description="Tạo backup ngay từ DB local hiện tại trước khi sửa dữ liệu hoặc restore.">
+          <div className="setup-form-grid">
+            <p className="setup-muted">Backup lấy trực tiếp từ file SQLite local đang nằm trong AppData.</p>
+            <Button onClick={handleBackup} disabled={!status?.database_exists}>Backup DB ngay</Button>
           </div>
         </SoftCard>
 
@@ -292,7 +337,7 @@ export function SystemPage() {
               </div>
               <div>
                 <span>Dung lượng sau tối ưu</span>
-                <strong>{Math.round(lastMedia.size_bytes / 1024)} KB</strong>
+                <strong>{formatBytes(lastMedia.size_bytes)}</strong>
               </div>
             </div>
           )}
