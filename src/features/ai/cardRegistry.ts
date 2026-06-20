@@ -39,6 +39,9 @@ const cards: Record<RouteKey, AssistantCard[]> = {
   system: [
     { id: 'release_check', title: 'Kiểm tra release', description: 'Nhắc DB, media, backup và update.', tone: 'sage', intentId: 'release_check' },
   ],
+  update: [
+    { id: 'update_check', title: 'Kiểm tra update', description: 'Nhắc endpoint, key, manifest và backup.', tone: 'sage', intentId: 'update_check' },
+  ],
 };
 
 export function getAssistantCards(tabKey: RouteKey) {
