@@ -10,6 +10,7 @@ import { renderInvoiceHtml } from '../../services/printing/invoiceTemplate';
 import { openPrintWindow } from '../../services/printing/printerService';
 import { createLocalId } from '../../utils/id';
 import { formatCurrency } from '../../utils/format';
+import { PrinterSettingsCard } from '../settings/PrinterSettingsCard';
 
 type OrderMode = 'counter' | 'delivery' | 'preorder';
 
@@ -272,6 +273,8 @@ export function POSPage() {
             ))}
           </div>
         </SoftCard>
+
+        <PrinterSettingsCard />
       </div>
     </>
   );
