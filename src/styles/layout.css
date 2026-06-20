@@ -1,9 +1,9 @@
 .app-shell {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 270px 1fr;
   height: calc(100vh - 38px);
   overflow: hidden;
-  padding: var(--space-5);
+  padding: var(--space-4);
 }
 
 .sidebar {
@@ -15,14 +15,14 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding: var(--space-5);
+  padding: var(--space-4);
 }
 
 .brand-card {
   align-items: center;
   display: flex;
   gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .brand-mark {
@@ -116,7 +116,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  padding-left: var(--space-5);
+  padding-left: var(--space-4);
 }
 
 .topbar {
@@ -124,11 +124,25 @@
   display: flex;
   flex-shrink: 0;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-2) var(--space-4);
+}
+
+.topbar-title {
+  border-radius: var(--radius-lg);
+  cursor: grab;
+  flex: 1;
+  margin-right: var(--space-4);
+  min-width: 180px;
+  padding: 4px 8px;
+  user-select: none;
+}
+
+.topbar-title:active {
+  cursor: grabbing;
 }
 
 .topbar h1 {
-  font-size: 32px;
+  font-size: 30px;
   letter-spacing: -0.04em;
 }
 
@@ -147,7 +161,7 @@
   color: var(--color-ink-500);
   display: flex;
   gap: var(--space-2);
-  min-width: 340px;
+  min-width: 320px;
   padding: 10px 16px;
 }
 
@@ -167,5 +181,5 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: var(--space-6);
+  padding: var(--space-5);
 }
