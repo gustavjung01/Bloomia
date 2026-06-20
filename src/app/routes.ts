@@ -1,3 +1,5 @@
+import type { ReactElement } from 'react';
+
 import { CustomersPage } from '../features/customers/CustomersPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { FlowerOrdersPage } from '../features/flower-orders/FlowerOrdersPage';
@@ -22,7 +24,7 @@ export interface AppRoute {
   label: string;
   icon: string;
   description: string;
-  component: () => JSX.Element;
+  component: () => ReactElement;
 }
 
 export const routes: AppRoute[] = [
