@@ -6,6 +6,7 @@ export interface BloomiaAppStatus {
   media_dir: string;
   backup_dir: string;
   database_exists: boolean;
+  pending_restore_exists: boolean;
 }
 
 export interface MediaSaveResult {
@@ -25,6 +26,10 @@ export async function backupBloomiaDatabase() {
 
 export async function listBloomiaBackups() {
   return invoke<string[]>('list_bloomia_backups');
+}
+
+export async function stageBloomiaDatabaseRestore(backupPath: string) {
+  return invoke<string>('stage_bloomia_database_restore', { backupPath });
 }
 
 export async function saveBloomiaMedia(ownerType: 'shop' | 'items' | 'recipes' | 'orders' | 'customers', file: File) {

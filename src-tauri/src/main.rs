@@ -2,6 +2,7 @@
 
 use serde::Serialize;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,6 +15,7 @@ struct BloomiaAppStatus {
     media_dir: String,
     backup_dir: String,
     database_exists: bool,
+    pending_restore_exists: bool,
 }
 
 #[derive(Serialize)]
@@ -60,6 +62,21 @@ fn list_bloomia_backups(app: AppHandle) -> Result<Vec<String>, String> {
     rows.sort();
     rows.reverse();
     Ok(rows)
+}
+
+#[tauri::command]
+fn stage_bloomia_database_restore(app: AppHandle, backup_path: String) -> Result<String, String> {
+    let source = PathBuf::from(&backup_path);
+    if !source.exists() {
+        return Err("Backup file does not exist".to_string());
+    }
+    if source.extension().and_then(|ext| ext.to_str()) != Some("db") {
+        return Err("Backup file must be a .db file".to_string());
+    }
+    let status = build_app_status(&app)?;
+    let pending_path = pending_restore_path(&PathBuf::from(&status.app_data_dir));
+    fs::copy(source, &pending_path).map_err(|error| error.to_string())?;
+    Ok(pending_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -110,6 +127,25 @@ fn list_local_printers() -> Result<Vec<String>, String> {
     Ok(printers)
 }
 
+fn apply_pending_restore(app: &AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let pending_path = pending_restore_path(&app_data_dir);
+    if !pending_path.exists() {
+        return Ok(());
+    }
+    let database_path = app_data_dir.join("bloomia.db");
+    let backup_dir = app_data_dir.join("backups");
+    fs::create_dir_all(&backup_dir).map_err(|error| error.to_string())?;
+    if database_path.exists() {
+        let timestamp = unix_timestamp()?;
+        let before_restore = backup_dir.join(format!("bloomia-before-restore-{timestamp}.db"));
+        fs::copy(&database_path, before_restore).map_err(|error| error.to_string())?;
+    }
+    fs::copy(&pending_path, &database_path).map_err(|error| error.to_string())?;
+    fs::remove_file(pending_path).map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
     let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
     let media_dir = app_data_dir.join("media");
@@ -117,6 +153,7 @@ fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
     fs::create_dir_all(&media_dir).map_err(|error| error.to_string())?;
     fs::create_dir_all(&backup_dir).map_err(|error| error.to_string())?;
     let database_path = app_data_dir.join("bloomia.db");
+    let pending_restore_exists = pending_restore_path(&app_data_dir).exists();
 
     Ok(BloomiaAppStatus {
         app_data_dir: app_data_dir.to_string_lossy().to_string(),
@@ -124,7 +161,12 @@ fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
         media_dir: media_dir.to_string_lossy().to_string(),
         backup_dir: backup_dir.to_string_lossy().to_string(),
         database_exists: database_path.exists(),
+        pending_restore_exists,
     })
+}
+
+fn pending_restore_path(app_data_dir: &PathBuf) -> PathBuf {
+    app_data_dir.join("restore-pending.db")
 }
 
 fn unix_timestamp() -> Result<u64, String> {
@@ -166,10 +208,15 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .setup(|app| {
+            apply_pending_restore(app.handle()).map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_bloomia_app_status,
             backup_bloomia_database,
             list_bloomia_backups,
+            stage_bloomia_database_restore,
             save_bloomia_media,
             list_local_printers,
         ])

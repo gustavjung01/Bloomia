@@ -7,6 +7,7 @@ import { loadPhotoMap } from '../../db/repositories/photoStore';
 import { getPrinterSettings } from '../../db/repositories/printerRepository';
 import { listRecipes, type HydratedRecipe } from '../../db/repositories/recipesRepository';
 import { createSale, type HydratedSale, type PaymentMethod } from '../../db/repositories/salesRepository';
+import { dispatchAIEvent } from '../../services/ai/desktopAIService';
 import { calculateCartTotals, lineTotal, normalizeMoney, normalizeQuantity, type CartLine } from '../../services/pos/cart';
 import { renderInvoiceHtml } from '../../services/printing/invoiceTemplate';
 import { openPrintWindow } from '../../services/printing/printerService';
@@ -59,9 +60,7 @@ export function POSPage() {
       setRecipes(data[1]);
       setShop(data[2]);
       const urls: { [key: string]: string } = {};
-      for (const [itemId, path] of Object.entries(data[3])) {
-        urls[itemId] = await resolveMediaUrl(path);
-      }
+      for (const [itemId, path] of Object.entries(data[3])) urls[itemId] = await resolveMediaUrl(path);
       setItemPhotoUrls(urls);
     } catch (caught) {
       console.error(caught);
@@ -111,6 +110,7 @@ export function POSPage() {
       setError('');
       const paidAmount = paymentMethod === 'debt' ? 0 : totals.total;
       const sale = await createSale({ customerName, customerPhone, note, subtotal: totals.subtotal, discountAmount: totals.discountAmount, shippingFee: totals.shippingFee, total: totals.total, paymentMethod, paidAmount, lines: cart.map((line) => ({ itemId: line.itemId, itemName: line.itemName, quantity: line.quantity, unitPrice: line.unitPrice, costPrice: line.costPrice ?? 0, note: line.note })) });
+      void dispatchAIEvent('sale_created', `Đã tạo hóa đơn ${sale.sale.invoice_code}`, `Tổng tiền ${formatCurrency(sale.sale.total)}`, { saleId: sale.sale.id, invoiceCode: sale.sale.invoice_code, total: sale.sale.total }).catch((eventError) => console.warn('AI event dispatch failed', eventError));
       setLastSale(sale);
       setCart([]);
       setCustomerName('');
@@ -141,7 +141,6 @@ export function POSPage() {
     <>
       <div className="page-title-row"><div><span className="eyebrow">Bán hàng</span><h2>Tạo hóa đơn bán lẻ</h2></div><PillTabs value={mode} onChange={setMode} options={[...orderModeOptions]} /></div>
       {(status || error) && <div className="setup-status-row">{status && <Badge tone="sage">{status}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
-
       <div className="page-grid">
         <SoftCard className="span-8" title="Thông tin khách hàng" description="Có thể để trống nếu là khách lẻ."><div className="page-grid"><div className="span-6"><TextField label="Khách hàng" value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div><div className="span-6"><TextField label="SĐT" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} /></div><div className="span-12"><TextArea label="Ghi chú đơn" value={note} placeholder="Tone màu, dịp tặng, lời nhắn thiệp..." onChange={(event) => setNote(event.target.value)} /></div></div></SoftCard>
         <SoftCard className="span-4" title="Thanh toán" description="POS chỉ hiển thị thông tin cần chốt đơn."><div className="pos-summary"><div className="pos-total-row"><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div><TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} /><TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} /><SelectField label="Thanh toán" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} /><div className="pos-total-row pos-grand-total"><span>Tổng cộng</span><strong>{formatCurrency(totals.total)}</strong></div><Button onClick={handleCheckout}>Lưu hóa đơn</Button><Button variant="soft" onClick={handlePrintLastSale} disabled={!lastSale}>Preview / In hóa đơn cuối</Button></div></SoftCard>

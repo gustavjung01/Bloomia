@@ -9,7 +9,7 @@ import { scoreEvent, shouldNotify } from './services/hotScore.js';
 import { sendNotify } from './services/notifier.js';
 
 const chatSchema = z.object({
-  tabKey: z.enum(['dashboard', 'sales', 'flowerOrders', 'inventory', 'purchase', 'recipes', 'customers', 'reports', 'settings']),
+  tabKey: z.enum(['dashboard', 'sales', 'flowerOrders', 'inventory', 'purchase', 'recipes', 'customers', 'reports', 'settings', 'system', 'update']),
   intentId: z.string().optional(),
   question: z.string().optional(),
   context: z.unknown().optional(),
