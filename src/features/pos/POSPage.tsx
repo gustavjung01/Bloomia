@@ -140,9 +140,10 @@ export function POSPage() {
 
   async function handlePrintLastSale() {
     if (!lastSale) { setError('Chưa có hóa đơn để in.'); return; }
-    const printer = await getPrinterSettings();
-    const invoiceMarkup = renderInvoiceHtml(lastSale, shop, printer);
+    let invoiceMarkup = '';
     try {
+      const printer = await getPrinterSettings();
+      invoiceMarkup = renderInvoiceHtml(lastSale, shop, printer);
       await sendInvoiceToPrinter(invoiceMarkup, printer?.printer_name, printer?.paper_size ?? '80mm');
       setError('');
       setStatus(`Đã gửi lệnh in hóa đơn ${lastSale.sale.invoice_code} tới máy in local.`);
@@ -150,7 +151,7 @@ export function POSPage() {
       console.error(caught);
       setStatus('');
       setError('In trực tiếp thất bại. Đã mở preview để in thủ công.');
-      openPrintWindow(invoiceMarkup);
+      if (invoiceMarkup) openPrintWindow(invoiceMarkup);
     }
   }
 
