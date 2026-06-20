@@ -40,7 +40,8 @@ export async function saveBloomiaMedia(ownerType: 'shop' | 'items' | 'recipes' |
 export async function resolveMediaUrl(relativePath?: string | null) {
   if (!relativePath) return '';
   const status = await getBloomiaAppStatus();
-  const fullPath = `${status.app_data_dir}\\${relativePath.replaceAll('/', '\\')}`;
+  const localRelativePath = relativePath.split('/').join('\\');
+  const fullPath = `${status.app_data_dir}\\${localRelativePath}`;
   return convertFileSrc(fullPath);
 }
 
