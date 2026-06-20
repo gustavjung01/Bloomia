@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 
 import { Badge, Button, SelectField, SoftCard, TextField } from '../../components/ui';
 import { getPrinterSettings, savePrinterSettings, type PaperSize } from '../../db/repositories/printerRepository';
-import { listLocalPrinters } from '../../services/printing/printerService';
+import { listLocalPrinters, testPrint } from '../../services/printing/printerService';
 
 const paperSizeOptions = [
   { label: '58mm', value: '58mm' },
   { label: '80mm', value: '80mm' },
   { label: 'A4', value: 'A4' },
 ];
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export function PrinterSettingsCard() {
   const [printerName, setPrinterName] = useState('');
@@ -43,6 +47,17 @@ export function PrinterSettingsCard() {
     }
   }
 
+  async function handleTestPrint() {
+    try {
+      setStatus('Đang gửi lệnh test in tới máy in local...');
+      await testPrint(printerName, paperSize);
+      setStatus('Đã gửi lệnh test in tới máy in local.');
+    } catch (error) {
+      console.error(error);
+      setStatus(`Test in thất bại: ${errorMessage(error)}`);
+    }
+  }
+
   return (
     <SoftCard className="span-12" title="Máy in" description="Chọn máy in mặc định và khổ giấy hóa đơn.">
       <div className="page-grid">
@@ -60,13 +75,14 @@ export function PrinterSettingsCard() {
         <div className="span-2">
           <SelectField label="Khổ giấy" value={paperSize} options={paperSizeOptions} onChange={(event) => setPaperSize(event.target.value as PaperSize)} />
         </div>
-        <div className="span-2" style={{ alignSelf: 'end' }}>
+        <div className="span-2" style={{ alignSelf: 'end', display: 'grid', gap: 8 }}>
           <Button onClick={handleSave}>Lưu</Button>
+          <Button variant="soft" onClick={handleTestPrint}>Test in</Button>
         </div>
       </div>
       {status && (
         <div className="setup-status-row" style={{ marginTop: 16, marginBottom: 0 }}>
-          <Badge tone="lavender">{status}</Badge>
+          <Badge tone={status.includes('thất bại') ? 'peach' : 'lavender'}>{status}</Badge>
         </div>
       )}
     </SoftCard>
