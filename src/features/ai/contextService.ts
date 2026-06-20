@@ -21,6 +21,6 @@ async function readTabData(tabKey: RouteKey) {
   if (tabKey === 'recipes') return { recipes: await listRecipes() };
   if (tabKey === 'reports') return { sales: await getSalesReport(30), inventory: await getInventoryReport(), waste: await getWasteReport(30) };
   if (tabKey === 'settings') return { items: await listItems(), suppliers: await listSuppliers() };
-  if (tabKey === 'system') return { status: await getBloomiaAppStatus(), backups: await listBloomiaBackups() };
+  if (tabKey === 'system' || tabKey === 'update') return { status: await getBloomiaAppStatus(), backups: await listBloomiaBackups() };
   return { recentSales: await listRecentSales(12) };
 }
