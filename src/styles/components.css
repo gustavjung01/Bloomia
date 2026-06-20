@@ -6,8 +6,8 @@
   font-weight: 700;
   gap: var(--space-2);
   justify-content: center;
-  min-height: 42px;
-  padding: 0 18px;
+  min-height: 40px;
+  padding: 0 16px;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
@@ -41,7 +41,8 @@
   border: 1px solid rgba(255, 255, 255, 0.84);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: var(--space-5);
+  min-width: 0;
+  padding: var(--space-4);
 }
 
 .soft-card-header {
@@ -49,7 +50,7 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .soft-card-title {
@@ -106,7 +107,7 @@
   border-radius: var(--radius-md);
   color: var(--color-ink-900);
   outline: 0;
-  padding: 12px 14px;
+  padding: 11px 13px;
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -162,8 +163,10 @@
   border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
+  max-height: min(92vh, 760px);
   max-width: 720px;
-  padding: var(--space-6);
+  overflow: auto;
+  padding: var(--space-5);
   width: min(92vw, 720px);
 }
 
@@ -173,7 +176,7 @@
   display: grid;
   gap: var(--space-3);
   justify-items: center;
-  padding: var(--space-8);
+  padding: var(--space-7);
   text-align: center;
 }
 
@@ -187,6 +190,42 @@
   height: 72px;
   justify-content: center;
   width: 72px;
+}
+
+.report-table {
+  display: grid;
+  gap: var(--space-2);
+  max-height: min(58vh, 620px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.report-table-head,
+.report-table-row {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.report-table-head {
+  color: var(--color-ink-500);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0 var(--space-3);
+  text-transform: uppercase;
+}
+
+.report-table-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.report-table-row span {
+  color: var(--color-ink-700);
 }
 
 .assistant-subtitle {
