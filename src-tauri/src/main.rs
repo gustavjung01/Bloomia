@@ -16,7 +16,9 @@ struct BloomiaAppStatus {
     media_dir: String,
     backup_dir: String,
     database_exists: bool,
+    database_size_bytes: u64,
     pending_restore_exists: bool,
+    app_version: String,
 }
 
 #[derive(Serialize)]
@@ -319,6 +321,7 @@ fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
     fs::create_dir_all(&media_dir).map_err(|error| error.to_string())?;
     fs::create_dir_all(&backup_dir).map_err(|error| error.to_string())?;
     let database_path = app_data_dir.join("bloomia.db");
+    let database_size_bytes = fs::metadata(&database_path).map(|metadata| metadata.len()).unwrap_or(0);
     let pending_restore_exists = pending_restore_path(&app_data_dir).exists();
 
     Ok(BloomiaAppStatus {
@@ -327,7 +330,9 @@ fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
         media_dir: media_dir.to_string_lossy().to_string(),
         backup_dir: backup_dir.to_string_lossy().to_string(),
         database_exists: database_path.exists(),
+        database_size_bytes,
         pending_restore_exists,
+        app_version: app.package_info().version.to_string(),
     })
 }
 
@@ -338,7 +343,7 @@ fn build_user_paths(app: &AppHandle, create: bool) -> Result<BloomiaUserPaths, S
     let reports_dir = exports_dir.join("reports");
     let invoices_dir = exports_dir.join("invoices");
     let orders_dir = exports_dir.join("orders");
-    let inventory_dir = exports_dir.join("inventory");
+    let inventory_dir = bloomia_dir.join("inventory");
     let user_backups_dir = bloomia_dir.join("Backups");
     let imports_dir = bloomia_dir.join("Imports");
 
