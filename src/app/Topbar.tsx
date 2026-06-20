@@ -1,5 +1,4 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { useState, type PointerEvent } from 'react';
+import { useState } from 'react';
 
 import type { RouteKey } from './routes';
 import { Badge, Button } from '../components/ui';
@@ -9,8 +8,6 @@ interface TopbarProps {
   title: string;
   databaseStatus: 'idle' | 'ready' | 'error';
 }
-
-const appWindow = getCurrentWindow();
 
 const statusLabel = {
   idle: 'DB đang khởi tạo',
@@ -36,23 +33,12 @@ export function Topbar({ title, databaseStatus }: TopbarProps) {
   const [open, setOpen] = useState(false);
   const tabKey = routeByTitle[title] ?? 'dashboard';
 
-  async function handleTopbarDrag(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return;
-    event.preventDefault();
-
-    try {
-      await appWindow.startDragging();
-    } catch (error) {
-      console.warn('Bloomia topbar drag failed', error);
-    }
-  }
-
   return (
     <>
       <header className="topbar">
-        <div className="topbar-title" data-tauri-drag-region onPointerDown={handleTopbarDrag} onDoubleClick={() => appWindow.toggleMaximize()}>
-          <span className="eyebrow" data-tauri-drag-region>Bloomia Desktop</span>
-          <h1 data-tauri-drag-region>{title}</h1>
+        <div className="topbar-title">
+          <span className="eyebrow">Bloomia Desktop</span>
+          <h1>{title}</h1>
         </div>
 
         <div className="topbar-actions">

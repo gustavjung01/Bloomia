@@ -24,6 +24,10 @@ export async function backupBloomiaDatabase() {
   return invoke<string>('backup_bloomia_database');
 }
 
+export async function openBloomiaAppDataDir() {
+  return invoke<void>('open_bloomia_app_data_dir');
+}
+
 export async function listBloomiaBackups() {
   return invoke<string[]>('list_bloomia_backups');
 }

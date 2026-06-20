@@ -105,6 +105,37 @@ fn save_bloomia_media(app: AppHandle, owner_type: String, file_name: String, byt
 }
 
 #[tauri::command]
+fn open_bloomia_app_data_dir(app: AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(&app_data_dir)
+            .spawn()
+            .map_err(|error| error.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(&app_data_dir)
+            .spawn()
+            .map_err(|error| error.to_string())?;
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        Command::new("xdg-open")
+            .arg(&app_data_dir)
+            .spawn()
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 fn list_local_printers() -> Result<Vec<String>, String> {
     #[cfg(target_os = "windows")]
     let output = Command::new("powershell")
@@ -218,6 +249,7 @@ fn main() {
             list_bloomia_backups,
             stage_bloomia_database_restore,
             save_bloomia_media,
+            open_bloomia_app_data_dir,
             list_local_printers,
         ])
         .run(tauri::generate_context!())
