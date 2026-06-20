@@ -24,6 +24,7 @@ import {
   type UnitRecord,
 } from '../../db/repositories/manualSetupRepository';
 import { formatCurrency } from '../../utils/format';
+import { ItemPhotoPanel } from './ItemPhotoPanel';
 
 type SettingsTab = 'shop' | 'catalog' | 'items';
 
@@ -278,12 +279,7 @@ export function SettingsPage() {
       )}
 
       {activeTab === 'shop' && (
-        <ShopSettingsPanel
-          shop={shop}
-          shopForm={shopForm}
-          setShopForm={setShopForm}
-          onSave={handleSaveShop}
-        />
+        <ShopSettingsPanel shop={shop} shopForm={shopForm} setShopForm={setShopForm} onSave={handleSaveShop} />
       )}
 
       {activeTab === 'catalog' && (
@@ -305,17 +301,21 @@ export function SettingsPage() {
       )}
 
       {activeTab === 'items' && (
-        <ItemSetupPanel
-          itemForm={itemForm}
-          setItemForm={setItemForm}
-          items={filteredItems}
-          itemFilter={itemFilter}
-          setItemFilter={setItemFilter}
-          categoryOptions={categoryOptions}
-          unitOptions={unitOptions}
-          onSaveItem={handleSaveItem}
-          onArchiveItem={handleArchiveItem}
-        />
+        <>
+          <ItemSetupPanel
+            itemForm={itemForm}
+            setItemForm={setItemForm}
+            items={filteredItems}
+            itemFilter={itemFilter}
+            setItemFilter={setItemFilter}
+            categoryOptions={categoryOptions}
+            unitOptions={unitOptions}
+            onSaveItem={handleSaveItem}
+            onArchiveItem={handleArchiveItem}
+          />
+          <div style={{ height: 20 }} />
+          <div className="page-grid"><ItemPhotoPanel /></div>
+        </>
       )}
     </>
   );
@@ -433,13 +433,7 @@ function CatalogSetupPanel({
           onEdit={(id) => {
             const supplier = suppliers.find((row) => row.id === id);
             if (supplier) {
-              setSupplierForm({
-                id: supplier.id,
-                name: supplier.name,
-                phone: supplier.phone ?? '',
-                address: supplier.address ?? '',
-                note: supplier.note ?? '',
-              });
+              setSupplierForm({ id: supplier.id, name: supplier.name, phone: supplier.phone ?? '', address: supplier.address ?? '', note: supplier.note ?? '' });
             }
           }}
           onArchive={(id) => onArchive('supplier', id)}
@@ -466,12 +460,8 @@ function CatalogList({ rows, onEdit, onArchive }: CatalogListProps) {
             <span>{row.meta}</span>
           </div>
           <div className="setup-row-actions">
-            <Button variant="ghost" onClick={() => onEdit(row.id)}>
-              Sửa
-            </Button>
-            <Button variant="soft" onClick={() => onArchive(row.id)}>
-              Ẩn
-            </Button>
+            <Button variant="ghost" onClick={() => onEdit(row.id)}>Sửa</Button>
+            <Button variant="soft" onClick={() => onArchive(row.id)}>Ẩn</Button>
           </div>
         </div>
       ))}
@@ -491,100 +481,37 @@ interface ItemSetupPanelProps {
   onArchiveItem: (id: string) => void;
 }
 
-function ItemSetupPanel({
-  itemForm,
-  setItemForm,
-  items,
-  itemFilter,
-  setItemFilter,
-  categoryOptions,
-  unitOptions,
-  onSaveItem,
-  onArchiveItem,
-}: ItemSetupPanelProps) {
+function ItemSetupPanel({ itemForm, setItemForm, items, itemFilter, setItemFilter, categoryOptions, unitOptions, onSaveItem, onArchiveItem }: ItemSetupPanelProps) {
   return (
     <div className="page-grid">
       <SoftCard className="span-5" title="Hàng hóa / dịch vụ" description="Dịch vụ sẽ tự tắt theo dõi tồn kho.">
         <div className="setup-form-grid">
           <TextField label="Tên" value={itemForm.name} onChange={(event) => setItemForm((form) => ({ ...form, name: event.target.value }))} />
           <TextField label="SKU" value={itemForm.sku} onChange={(event) => setItemForm((form) => ({ ...form, sku: event.target.value }))} />
-          <SelectField
-            label="Loại"
-            value={itemForm.itemType}
-            options={Object.entries(itemTypeLabels).map(([value, label]) => ({ value, label }))}
-            onChange={(event) => {
-              const itemType = event.target.value as ItemType;
-              setItemForm((form) => ({ ...form, itemType, isStockTracked: itemType === 'service' ? false : form.isStockTracked }));
-            }}
-          />
+          <SelectField label="Loại" value={itemForm.itemType} options={Object.entries(itemTypeLabels).map(([value, label]) => ({ value, label }))} onChange={(event) => { const itemType = event.target.value as ItemType; setItemForm((form) => ({ ...form, itemType, isStockTracked: itemType === 'service' ? false : form.isStockTracked })); }} />
           <SelectField label="Nhóm hàng" value={itemForm.categoryId} options={categoryOptions} onChange={(event) => setItemForm((form) => ({ ...form, categoryId: event.target.value }))} />
           <SelectField label="Đơn vị tính" value={itemForm.unitId} options={unitOptions} onChange={(event) => setItemForm((form) => ({ ...form, unitId: event.target.value }))} />
           <TextField label="Giá bán gợi ý" type="number" min={0} value={itemForm.defaultSalePrice} onChange={(event) => setItemForm((form) => ({ ...form, defaultSalePrice: event.target.value }))} />
-          <label className="setup-checkbox">
-            <input
-              type="checkbox"
-              checked={itemForm.itemType === 'service' ? false : itemForm.isStockTracked}
-              disabled={itemForm.itemType === 'service'}
-              onChange={(event) => setItemForm((form) => ({ ...form, isStockTracked: event.target.checked }))}
-            />
-            Theo dõi tồn kho
-          </label>
+          <label className="setup-checkbox"><input type="checkbox" checked={itemForm.itemType === 'service' ? false : itemForm.isStockTracked} disabled={itemForm.itemType === 'service'} onChange={(event) => setItemForm((form) => ({ ...form, isStockTracked: event.target.checked }))} />Theo dõi tồn kho</label>
           <TextArea label="Ghi chú" value={itemForm.note} onChange={(event) => setItemForm((form) => ({ ...form, note: event.target.value }))} />
           <Button onClick={onSaveItem}>{itemForm.id ? 'Cập nhật' : 'Thêm hàng hóa/dịch vụ'}</Button>
-          {itemForm.id && (
-            <Button variant="ghost" onClick={() => setItemForm(emptyItemForm)}>
-              Hủy sửa
-            </Button>
-          )}
+          {itemForm.id && <Button variant="ghost" onClick={() => setItemForm(emptyItemForm)}>Hủy sửa</Button>}
         </div>
       </SoftCard>
 
-      <SoftCard
-        className="span-7"
-        title="Danh sách đang dùng"
-        description="Ẩn mềm để tránh mất dữ liệu đã phát sinh giao dịch."
-        action={
-          <SelectField
-            label="Lọc loại"
-            value={itemFilter}
-            options={[{ label: 'Tất cả', value: 'all' }, ...Object.entries(itemTypeLabels).map(([value, label]) => ({ value, label }))]}
-            onChange={(event) => setItemFilter(event.target.value as ItemType | 'all')}
-          />
-        }
-      >
+      <SoftCard className="span-7" title="Danh sách hàng hóa" description="Bấm sửa để cập nhật nhanh giá bán, nhóm hàng hoặc tồn kho.">
+        <PillTabs value={itemFilter} onChange={setItemFilter} options={[{ label: 'Tất cả', value: 'all' }, ...Object.entries(itemTypeLabels).map(([value, label]) => ({ value, label }))]} />
         <div className="setup-list setup-list-tall">
           {items.length === 0 && <p className="setup-muted">Chưa có hàng hóa/dịch vụ.</p>}
           {items.map((item) => (
             <div className="setup-list-row" key={item.id}>
               <div>
                 <strong>{item.name}</strong>
-                <span>
-                  {itemTypeLabels[item.item_type]} • {item.category_name ?? 'Chưa nhóm'} • {item.unit_symbol ?? 'Chưa đơn vị'}
-                </span>
-                <span>{formatCurrency(item.default_sale_price)} • {item.is_stock_tracked ? 'Có tồn kho' : 'Không trừ kho'}</span>
+                <span>{itemTypeLabels[item.item_type]} • {item.category_name ?? 'Chưa nhóm'} • {item.unit_symbol ?? 'Chưa đơn vị'} • {formatCurrency(item.default_sale_price)}</span>
               </div>
               <div className="setup-row-actions">
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    setItemForm({
-                      id: item.id,
-                      name: item.name,
-                      sku: item.sku ?? '',
-                      itemType: item.item_type,
-                      categoryId: item.category_id ?? '',
-                      unitId: item.unit_id ?? '',
-                      defaultSalePrice: String(item.default_sale_price),
-                      isStockTracked: Boolean(item.is_stock_tracked),
-                      note: item.note ?? '',
-                    })
-                  }
-                >
-                  Sửa
-                </Button>
-                <Button variant="soft" onClick={() => onArchiveItem(item.id)}>
-                  Ẩn
-                </Button>
+                <Button variant="ghost" onClick={() => setItemForm({ id: item.id, name: item.name, sku: item.sku ?? '', itemType: item.item_type, categoryId: item.category_id ?? '', unitId: item.unit_id ?? '', defaultSalePrice: String(item.default_sale_price), isStockTracked: Boolean(item.is_stock_tracked), note: item.note ?? '' })}>Sửa</Button>
+                <Button variant="soft" onClick={() => onArchiveItem(item.id)}>Ẩn</Button>
               </div>
             </div>
           ))}
