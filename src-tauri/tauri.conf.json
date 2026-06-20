@@ -11,7 +11,18 @@
   },
   "app": {
     "windows": [
-      { "title": "Bloomia", "width": 1440, "height": 920, "minWidth": 1180, "minHeight": 760, "resizable": true, "decorations": false }
+      {
+        "title": "Bloomia",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1180,
+        "minHeight": 760,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "decorations": true
+      }
     ],
     "security": { "csp": null }
   },
