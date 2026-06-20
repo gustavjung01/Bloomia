@@ -9,6 +9,18 @@ export interface BloomiaAppStatus {
   pending_restore_exists: boolean;
 }
 
+export interface BloomiaUserPaths {
+  documents_dir: string;
+  bloomia_dir: string;
+  exports_dir: string;
+  reports_dir: string;
+  invoices_dir: string;
+  orders_dir: string;
+  inventory_dir: string;
+  user_backups_dir: string;
+  imports_dir: string;
+}
+
 export interface MediaSaveResult {
   stored_name: string;
   relative_path: string;
