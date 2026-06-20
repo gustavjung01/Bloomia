@@ -3,6 +3,7 @@ import { Badge, Button } from '../components/ui';
 interface TopbarProps {
   title: string;
   databaseStatus: 'idle' | 'ready' | 'error';
+  onAssistantOpen: () => void;
 }
 
 const statusLabel = {
@@ -11,7 +12,7 @@ const statusLabel = {
   error: 'DB lỗi',
 };
 
-export function Topbar({ title, databaseStatus }: TopbarProps) {
+export function Topbar({ title, databaseStatus, onAssistantOpen }: TopbarProps) {
   return (
     <header className="topbar">
       <div>
@@ -27,7 +28,7 @@ export function Topbar({ title, databaseStatus }: TopbarProps) {
           <span>⌕</span>
           <input placeholder="Tìm đơn hàng, khách hàng, sản phẩm..." />
         </label>
-        <Button variant="soft">AI tư vấn</Button>
+        <Button variant="soft" onClick={onAssistantOpen}>Bloomia AI</Button>
       </div>
     </header>
   );
