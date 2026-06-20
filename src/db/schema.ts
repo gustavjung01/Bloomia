@@ -19,5 +19,6 @@ export interface SeedItem {
   unit: string;
   category: string;
   defaultSalePrice: number;
+  defaultPurchasePrice?: number;
   isStockTracked: boolean;
 }
