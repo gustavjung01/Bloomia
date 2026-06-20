@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import type { RouteKey } from '../../app/routes';
 import { Badge, Button, Dialog, SoftCard } from '../../components/ui';
 import { saveAssistantSession } from '../../db/repositories/assistantSessionRepository';
+import { getDesktopAIAdvice } from '../../services/ai/desktopAIService';
 import { createLocalId } from '../../utils/id';
 import { getAssistantCards } from './cardRegistry';
 import { buildTabContext } from './contextService';
-import { buildAssistantResult } from './resultService';
 import type { AssistantResult } from './types';
 
 interface TabAssistantPopupProps {
@@ -34,7 +34,7 @@ export function TabAssistantPopup({ open, tabKey, tabTitle, onClose }: TabAssist
       setLoadingIntent(intentId);
       setError('');
       const contextText = await buildTabContext(tabKey);
-      const nextResult = buildAssistantResult(tabKey, intentId, contextText);
+      const nextResult = await getDesktopAIAdvice(tabKey, intentId, contextText);
       setResult(nextResult);
       await saveAssistantSession({
         id: createLocalId('assistant-session'),
