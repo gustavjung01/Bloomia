@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prepare:assets": "node scripts/generate-release-art.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:dev": "npm run prepare:assets && tauri dev",
+    "tauri:build": "npm run prepare:assets && tauri build",
+    "tauri:build:nsis": "npm run prepare:assets && tauri build --bundles nsis",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
