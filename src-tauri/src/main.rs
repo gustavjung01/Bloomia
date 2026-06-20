@@ -91,36 +91,22 @@ fn save_bloomia_media(app: AppHandle, owner_type: String, file_name: String, byt
 fn list_local_printers() -> Result<Vec<String>, String> {
     #[cfg(target_os = "windows")]
     let output = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-Command",
-            "Get-Printer | Select-Object -ExpandProperty Name",
-        ])
+        .args(["-NoProfile", "-Command", "Get-Printer | Select-Object -ExpandProperty Name"])
         .output()
         .map_err(|error| error.to_string())?;
 
     #[cfg(target_os = "macos")]
-    let output = Command::new("lpstat")
-        .args(["-p"])
-        .output()
-        .map_err(|error| error.to_string())?;
+    let output = Command::new("lpstat").args(["-p"]).output().map_err(|error| error.to_string())?;
 
     #[cfg(all(unix, not(target_os = "macos")))]
-    let output = Command::new("lpstat")
-        .args(["-a"])
-        .output()
-        .map_err(|error| error.to_string())?;
+    let output = Command::new("lpstat").args(["-a"]).output().map_err(|error| error.to_string())?;
 
     if !output.status.success() {
         return Ok(Vec::new());
     }
 
     let text = String::from_utf8_lossy(&output.stdout);
-    let printers = text
-        .lines()
-        .filter_map(parse_printer_line)
-        .collect::<Vec<String>>();
-
+    let printers = text.lines().filter_map(parse_printer_line).collect::<Vec<String>>();
     Ok(printers)
 }
 
@@ -142,10 +128,7 @@ fn build_app_status(app: &AppHandle) -> Result<BloomiaAppStatus, String> {
 }
 
 fn unix_timestamp() -> Result<u64, String> {
-    Ok(SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|error| error.to_string())?
-        .as_secs())
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH).map_err(|error| error.to_string())?.as_secs())
 }
 
 fn safe_owner_type(value: &str) -> Result<String, String> {
@@ -156,11 +139,7 @@ fn safe_owner_type(value: &str) -> Result<String, String> {
 }
 
 fn safe_extension(file_name: &str) -> Result<String, String> {
-    let extension = file_name
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_ascii_lowercase();
+    let extension = file_name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     match extension.as_str() {
         "png" | "jpg" | "jpeg" | "webp" => Ok(extension),
         _ => Err("Only png, jpg, jpeg and webp images are allowed".to_string()),
@@ -186,6 +165,7 @@ fn parse_printer_line(line: &str) -> Option<String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_bloomia_app_status,
             backup_bloomia_database,
