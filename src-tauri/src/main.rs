@@ -2,6 +2,7 @@
 
 use serde::Serialize;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -208,7 +209,7 @@ fn main() {
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            apply_pending_restore(app.handle()).map_err(|error| Box::<dyn std::error::Error>::from(error))?;
+            apply_pending_restore(app.handle()).map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
