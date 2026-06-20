@@ -44,6 +44,7 @@ p {
   align-items: center;
   background: linear-gradient(135deg, var(--color-blush-100), var(--color-peach-100));
   border-bottom: 1px solid rgba(255, 255, 255, 0.72);
+  cursor: grab;
   display: flex;
   height: 38px;
   justify-content: space-between;
@@ -51,12 +52,18 @@ p {
   user-select: none;
 }
 
+.desktop-titlebar:active {
+  cursor: grabbing;
+}
+
 .desktop-titlebar-brand {
   align-items: center;
   color: var(--color-ink-900);
   display: flex;
+  flex: 1;
   gap: 8px;
   font-size: 13px;
+  height: 100%;
 }
 
 .desktop-titlebar-mark {
@@ -73,6 +80,7 @@ p {
 }
 
 .desktop-titlebar-actions {
+  cursor: default;
   display: flex;
   height: 100%;
 }
@@ -103,13 +111,17 @@ p {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .page-grid {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
   grid-template-columns: repeat(12, 1fr);
+}
+
+.page-grid > * {
+  min-width: 0;
 }
 
 .span-3 {
