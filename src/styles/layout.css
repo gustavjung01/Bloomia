@@ -1,6 +1,6 @@
 .app-shell {
   display: grid;
-  grid-template-columns: 270px 1fr;
+  grid-template-columns: 250px 1fr;
   height: 100vh;
   overflow: hidden;
   padding: var(--space-4);
@@ -21,8 +21,9 @@
 .brand-card {
   align-items: center;
   display: flex;
+  flex-shrink: 0;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 
 .brand-mark {
@@ -31,30 +32,33 @@
   border-radius: 18px;
   color: var(--color-white);
   display: flex;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
-  height: 54px;
+  height: 50px;
   justify-content: center;
-  width: 54px;
+  width: 50px;
 }
 
 .brand-card strong {
   display: block;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .brand-card span {
   color: var(--color-ink-500);
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .nav-list {
+  align-content: start;
   display: grid;
-  gap: var(--space-2);
-  overflow: auto;
+  flex: 1;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .nav-item {
@@ -64,15 +68,16 @@
   border-radius: var(--radius-pill);
   color: var(--color-ink-700);
   display: flex;
-  gap: var(--space-3);
-  padding: 12px 14px;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 8px 12px;
   text-align: left;
   transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
 
 .nav-item:hover {
   background: rgba(255, 241, 245, 0.78);
-  transform: translateX(2px);
+  transform: translateX(1px);
 }
 
 .nav-item.is-active {
@@ -87,9 +92,10 @@
   background: rgba(255, 255, 255, 0.74);
   border-radius: var(--radius-pill);
   display: inline-flex;
-  height: 32px;
+  flex: 0 0 28px;
+  height: 28px;
   justify-content: center;
-  width: 32px;
+  width: 28px;
 }
 
 .sidebar-quote {
@@ -100,14 +106,18 @@
   color: var(--color-ink-700);
   display: flex;
   flex-shrink: 0;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
 }
 
 .sidebar-quote span {
   color: var(--color-blush-500);
-  font-size: 24px;
+  font-size: 22px;
+}
+
+.sidebar-quote p {
+  margin: 0;
 }
 
 .app-main {
@@ -182,4 +192,40 @@
   min-height: 0;
   overflow: auto;
   padding: var(--space-5);
+}
+
+@media (max-height: 760px) {
+  .sidebar {
+    padding: var(--space-3);
+  }
+
+  .brand-card {
+    margin-bottom: var(--space-2);
+  }
+
+  .brand-mark {
+    border-radius: 16px;
+    font-size: 22px;
+    height: 44px;
+    width: 44px;
+  }
+
+  .nav-list {
+    gap: 5px;
+  }
+
+  .nav-item {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  .nav-icon {
+    flex-basis: 26px;
+    height: 26px;
+    width: 26px;
+  }
+
+  .sidebar-quote {
+    display: none;
+  }
 }
