@@ -6,7 +6,9 @@ export interface BloomiaAppStatus {
   media_dir: string;
   backup_dir: string;
   database_exists: boolean;
+  database_size_bytes: number;
   pending_restore_exists: boolean;
+  app_version: string;
 }
 
 export interface BloomiaUserPaths {
