@@ -6,7 +6,7 @@
   "scripts": {
     "prepare:assets": "node scripts/generate-release-art.mjs",
     "configure:updater": "node scripts/configure-updater.mjs",
-    "release:manifest": "node scripts/generate-r2-manifest.mjs",
+    "release:manifest": "node scripts/make-update-feed.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
