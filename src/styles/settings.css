@@ -49,3 +49,47 @@
   flex-shrink: 0;
   gap: var(--space-2);
 }
+
+.setup-checkbox {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(184, 174, 186, 0.22);
+  border-radius: var(--radius-md);
+  color: var(--color-ink-700);
+  display: flex;
+  font-weight: 700;
+  gap: var(--space-3);
+  padding: 12px 14px;
+}
+
+.setup-checkbox input {
+  accent-color: var(--color-blush-500);
+  height: 18px;
+  width: 18px;
+}
+
+.invoice-preview-card {
+  background: rgba(255, 253, 249, 0.9);
+  border: 1px dashed rgba(91, 74, 88, 0.22);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink-700);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+.invoice-preview-card strong {
+  color: var(--color-ink-900);
+  font-size: 22px;
+}
+
+.invoice-preview-card span {
+  color: var(--color-ink-500);
+}
+
+.invoice-preview-card hr {
+  border: 0;
+  border-top: 1px dashed rgba(91, 74, 88, 0.22);
+  margin: var(--space-3) 0;
+  width: 100%;
+}
