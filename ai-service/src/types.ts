@@ -1,4 +1,4 @@
-export type TabKey = 'dashboard' | 'sales' | 'flowerOrders' | 'inventory' | 'purchase' | 'recipes' | 'customers' | 'reports' | 'settings';
+export type TabKey = 'dashboard' | 'sales' | 'flowerOrders' | 'inventory' | 'purchase' | 'recipes' | 'customers' | 'reports' | 'settings' | 'system' | 'update';
 
 export interface FloristChatRequest {
   tabKey: TabKey;
