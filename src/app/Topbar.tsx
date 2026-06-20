@@ -25,6 +25,7 @@ const routeByTitle: Record<string, RouteKey> = {
   'Khách hàng': 'customers',
   'Báo cáo': 'reports',
   'Cài đặt': 'settings',
+  'Hệ thống': 'system',
 };
 
 export function Topbar({ title, databaseStatus }: TopbarProps) {

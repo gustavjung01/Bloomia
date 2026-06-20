@@ -93,3 +93,32 @@
   margin: var(--space-3) 0;
   width: 100%;
 }
+
+.system-info-list {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.system-info-list div {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.system-info-list span {
+  color: var(--color-ink-500);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.system-info-list code {
+  color: var(--color-ink-700);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

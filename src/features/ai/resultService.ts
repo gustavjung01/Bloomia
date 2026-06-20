@@ -20,6 +20,7 @@ export function buildAssistantResult(tabKey: RouteKey, intentId: string, context
   if (tabKey === 'recipes') return { title: 'Tối ưu mẫu hoa', body: `Đang có ${(data.recipes ?? []).length} mẫu hoa. Rà mẫu có giá bán thấp so với vốn tạm để tránh lời mỏng.` };
   if (tabKey === 'reports') return { title: 'Insight báo cáo', body: `Báo cáo có ${(data.sales ?? []).length} dòng doanh thu và ${(data.waste ?? []).length} dòng hao hụt. So ngày bán cao với tồn để chuẩn bị nhập hợp lý.` };
   if (tabKey === 'settings') return { title: 'Checklist setup', body: `Có ${(data.items ?? []).length} item/dịch vụ và ${(data.suppliers ?? []).length} nhà cung cấp. Kiểm tra giá bán, đơn vị tính và theo dõi tồn.` };
+  if (tabKey === 'system') return { title: 'Checklist release', body: 'Kiểm tra DB local đã tồn tại, tạo backup trước khi update, và chỉ dùng upload ảnh qua media local thay vì dán đường dẫn.' };
 
   return { title: 'Gợi ý chăm khách', body: 'Sau khi khách mua, gửi lời cảm ơn ngắn và nhắc shop có thể tùy chỉnh tone/giờ giao cho lần sau.', actionLabel: 'Copy gợi ý', actionText: 'Bloomia cảm ơn mình đã đặt hoa ạ. Khi cần đổi tone hoặc đặt trước dịp sau, cứ nhắn shop nhé.' };
 }

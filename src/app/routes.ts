@@ -9,8 +9,9 @@ import { PurchasePage } from '../features/purchase/PurchasePage';
 import { RecipesPage } from '../features/recipes/RecipesPage';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { SystemPage } from '../features/system/SystemPage';
 
-export type RouteKey = 'dashboard' | 'sales' | 'flowerOrders' | 'inventory' | 'purchase' | 'recipes' | 'customers' | 'reports' | 'settings';
+export type RouteKey = 'dashboard' | 'sales' | 'flowerOrders' | 'inventory' | 'purchase' | 'recipes' | 'customers' | 'reports' | 'settings' | 'system';
 
 export interface AppRoute {
   key: RouteKey;
@@ -30,4 +31,5 @@ export const routes: AppRoute[] = [
   { key: 'customers', label: 'Khách hàng', icon: '♡', description: 'Hồ sơ khách và lịch sử mua', component: CustomersPage },
   { key: 'reports', label: 'Báo cáo', icon: '◌', description: 'Doanh thu, tồn kho, hao hụt và lợi nhuận', component: ReportsPage },
   { key: 'settings', label: 'Cài đặt', icon: '⚙', description: 'Thông tin shop, máy in và dữ liệu nền', component: SettingsPage },
+  { key: 'system', label: 'Hệ thống', icon: '◈', description: 'DB local, media, backup và release', component: SystemPage },
 ];
