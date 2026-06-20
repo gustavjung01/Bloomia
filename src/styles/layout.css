@@ -1,7 +1,7 @@
 .app-shell {
   display: grid;
   grid-template-columns: 280px 1fr;
-  height: 100vh;
+  height: calc(100vh - 38px);
   overflow: hidden;
   padding: var(--space-5);
 }
@@ -13,7 +13,7 @@
   box-shadow: var(--shadow-soft);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px);
+  height: 100%;
   overflow: hidden;
   padding: var(--space-5);
 }
