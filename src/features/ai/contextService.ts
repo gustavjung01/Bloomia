@@ -5,6 +5,7 @@ import { getDashboardSummary, getInventoryReport, getSalesReport, getWasteReport
 import { listRecipes } from '../../db/repositories/recipesRepository';
 import { listItems, listSuppliers } from '../../db/repositories/manualSetupRepository';
 import { listRecentSales } from '../../db/repositories/salesRepository';
+import { getBloomiaAppStatus, listBloomiaBackups } from '../../services/system/systemService';
 
 export async function buildTabContext(tabKey: RouteKey) {
   const data = await readTabData(tabKey);
@@ -20,5 +21,6 @@ async function readTabData(tabKey: RouteKey) {
   if (tabKey === 'recipes') return { recipes: await listRecipes() };
   if (tabKey === 'reports') return { sales: await getSalesReport(30), inventory: await getInventoryReport(), waste: await getWasteReport(30) };
   if (tabKey === 'settings') return { items: await listItems(), suppliers: await listSuppliers() };
+  if (tabKey === 'system') return { status: await getBloomiaAppStatus(), backups: await listBloomiaBackups() };
   return { recentSales: await listRecentSales(12) };
 }
