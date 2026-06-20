@@ -5,7 +5,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
 
@@ -244,6 +244,32 @@ fn list_local_printers() -> Result<Vec<String>, String> {
     Ok(printers)
 }
 
+#[tauri::command]
+fn print_invoice_html(app: AppHandle, printer_name: Option<String>, html: String, paper_size: String) -> Result<(), String> {
+    if html.trim().is_empty() {
+        return Err("Nội dung hóa đơn trống, không thể in.".to_string());
+    }
+
+    let paper_size = normalize_paper_size(&paper_size)?;
+    let printer_name = normalize_printer_name(printer_name);
+    let receipt_text = format_receipt_text_for_paper(&html_to_receipt_text(&html), &paper_size);
+    let job_path = write_print_job(&app, &receipt_text, "invoice")?;
+    print_text_file_native(&job_path, printer_name.as_deref(), &paper_size)
+}
+
+#[tauri::command]
+fn test_print(app: AppHandle, printer_name: Option<String>, paper_size: String) -> Result<(), String> {
+    let paper_size = normalize_paper_size(&paper_size)?;
+    let printer_name = normalize_printer_name(printer_name);
+    let printer_label = printer_name.as_deref().unwrap_or("Máy in mặc định");
+    let timestamp = unix_timestamp()?;
+    let text = format!(
+        "Bloomia Studio\nTest in local printer\n-----------------------------\nPrinter: {printer_label}\nPaper: {paper_size}\nTime: {timestamp}\n\nNếu anh thấy dòng này thì Bloomia đã gửi job in thật tới máy in local."
+    );
+    let job_path = write_print_job(&app, &format_receipt_text_for_paper(&text, &paper_size), "test-print")?;
+    print_text_file_native(&job_path, printer_name.as_deref(), &paper_size)
+}
+
 fn apply_pending_restore(app: &AppHandle) -> Result<(), String> {
     let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
     let pending_path = pending_restore_path(&app_data_dir);
@@ -450,6 +476,282 @@ fn parse_printer_line(line: &str) -> Option<String> {
     return clean.split_whitespace().next().map(String::from);
 }
 
+fn normalize_printer_name(value: Option<String>) -> Option<String> {
+    value.map(|name| name.trim().to_string()).filter(|name| !name.is_empty())
+}
+
+fn normalize_paper_size(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "58mm" => Ok("58mm".to_string()),
+        "80mm" => Ok("80mm".to_string()),
+        "A4" => Ok("A4".to_string()),
+        _ => Err("Khổ giấy không hỗ trợ. Chỉ dùng 58mm, 80mm hoặc A4.".to_string()),
+    }
+}
+
+fn write_print_job(app: &AppHandle, contents: &str, prefix: &str) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let print_dir = app_data_dir.join("print-jobs");
+    fs::create_dir_all(&print_dir).map_err(|error| error.to_string())?;
+    let timestamp = unix_timestamp()?;
+    let target_path = print_dir.join(format!("{prefix}-{timestamp}.txt"));
+    fs::write(&target_path, contents.as_bytes()).map_err(|error| error.to_string())?;
+    Ok(target_path)
+}
+
+fn html_to_receipt_text(html: &str) -> String {
+    let mut prepared = html.to_string();
+    for marker in ["<br>", "<br/>", "<br />", "</p>", "</div>", "</section>", "</article>", "</tr>", "</h1>", "</h2>", "</h3>", "</li>"] {
+        prepared = prepared.replace(marker, "\n");
+    }
+    for marker in ["</td>", "</th>"] {
+        prepared = prepared.replace(marker, "  ");
+    }
+
+    let mut output = String::new();
+    let mut inside_tag = false;
+    for ch in prepared.chars() {
+        match ch {
+            '<' => inside_tag = true,
+            '>' => inside_tag = false,
+            _ if !inside_tag => output.push(ch),
+            _ => {}
+        }
+    }
+
+    let decoded = decode_html_entities(&output);
+    let mut lines = Vec::new();
+    let mut last_blank = true;
+    for line in decoded.lines() {
+        let clean = line.split_whitespace().collect::<Vec<&str>>().join(" ");
+        if clean.is_empty() {
+            if !last_blank {
+                lines.push(String::new());
+            }
+            last_blank = true;
+        } else {
+            lines.push(clean);
+            last_blank = false;
+        }
+    }
+
+    while lines.last().map(|line| line.is_empty()).unwrap_or(false) {
+        lines.pop();
+    }
+
+    if lines.is_empty() {
+        "Bloomia invoice".to_string()
+    } else {
+        lines.join("\n")
+    }
+}
+
+fn decode_html_entities(value: &str) -> String {
+    value
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+}
+
+fn format_receipt_text_for_paper(text: &str, paper_size: &str) -> String {
+    let width = match paper_size {
+        "58mm" => 32,
+        "80mm" => 42,
+        _ => 80,
+    };
+
+    text.lines()
+        .flat_map(|line| wrap_text_line(line, width))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+fn wrap_text_line(line: &str, width: usize) -> Vec<String> {
+    if line.chars().count() <= width {
+        return vec![line.to_string()];
+    }
+
+    let mut rows = Vec::new();
+    let mut current = String::new();
+    for word in line.split_whitespace() {
+        let word_len = word.chars().count();
+        let current_len = current.chars().count();
+        if current_len == 0 && word_len <= width {
+            current.push_str(word);
+        } else if current_len > 0 && current_len + 1 + word_len <= width {
+            current.push(' ');
+            current.push_str(word);
+        } else {
+            if !current.is_empty() {
+                rows.push(current);
+                current = String::new();
+            }
+            if word_len <= width {
+                current.push_str(word);
+            } else {
+                let mut chunk = String::new();
+                for ch in word.chars() {
+                    if chunk.chars().count() == width {
+                        rows.push(chunk);
+                        chunk = String::new();
+                    }
+                    chunk.push(ch);
+                }
+                current = chunk;
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        rows.push(current);
+    }
+    if rows.is_empty() {
+        vec![line.to_string()]
+    } else {
+        rows
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn print_text_file_native(file_path: &Path, printer_name: Option<&str>, paper_size: &str) -> Result<(), String> {
+    let script_path = file_path.with_extension("ps1");
+    fs::write(&script_path, windows_print_script().as_bytes()).map_err(|error| error.to_string())?;
+
+    let mut command = Command::new("powershell");
+    command
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(&script_path)
+        .arg("-FilePath")
+        .arg(file_path)
+        .arg("-PaperSize")
+        .arg(paper_size);
+
+    if let Some(name) = printer_name {
+        command.arg("-PrinterName").arg(name);
+    }
+
+    let output = command.output().map_err(|error| error.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(command_output_error("Không gửi được lệnh in tới Windows printer spooler", &output))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_print_script() -> &'static str {
+    r#"
+param(
+  [Parameter(Mandatory=$true)][string]$FilePath,
+  [string]$PrinterName,
+  [string]$PaperSize = "80mm"
+)
+
+if (-not (Test-Path -LiteralPath $FilePath)) {
+  throw "Print job file does not exist: $FilePath"
+}
+
+Add-Type -AssemblyName System.Drawing
+
+$script:lines = (Get-Content -LiteralPath $FilePath -Raw -Encoding UTF8) -split "`r?`n"
+$script:lineIndex = 0
+$font = New-Object System.Drawing.Font("Consolas", 9)
+$doc = New-Object System.Drawing.Printing.PrintDocument
+$targetPrinter = ""
+if ($PrinterName) { $targetPrinter = $PrinterName.Trim() }
+if ($targetPrinter.Length -gt 0) { $doc.PrinterSettings.PrinterName = $targetPrinter }
+
+if (-not $doc.PrinterSettings.IsValid) {
+  if ($targetPrinter.Length -gt 0) {
+    throw "Printer not found or invalid: $targetPrinter"
+  }
+  throw "Default printer is not available"
+}
+
+switch ($PaperSize) {
+  "58mm" { $doc.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize("Bloomia 58mm", 228, 1100) }
+  "80mm" { $doc.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize("Bloomia 80mm", 315, 1100) }
+  "A4" { }
+  default { throw "Unsupported paper size: $PaperSize" }
+}
+
+if ($PaperSize -eq "A4") {
+  $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(40, 40, 40, 40)
+} else {
+  $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(4, 4, 4, 4)
+}
+
+$doc.add_PrintPage({
+  param($sender, $eventArgs)
+  $bounds = $eventArgs.MarginBounds
+  $y = [single]$bounds.Top
+  $lineHeight = [single]($font.GetHeight($eventArgs.Graphics) + 2)
+
+  while ($script:lineIndex -lt $script:lines.Length) {
+    $line = $script:lines[$script:lineIndex]
+    $eventArgs.Graphics.DrawString($line, $font, [System.Drawing.Brushes]::Black, [single]$bounds.Left, $y)
+    $y += $lineHeight
+    $script:lineIndex += 1
+
+    if (($y + $lineHeight) -gt $bounds.Bottom) {
+      $eventArgs.HasMorePages = $true
+      return
+    }
+  }
+
+  $eventArgs.HasMorePages = $false
+})
+
+try {
+  $doc.Print()
+} finally {
+  $font.Dispose()
+  $doc.Dispose()
+}
+"#
+}
+
+#[cfg(target_os = "macos")]
+fn print_text_file_native(file_path: &Path, printer_name: Option<&str>, _paper_size: &str) -> Result<(), String> {
+    print_text_file_with_lp(file_path, printer_name)
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn print_text_file_native(file_path: &Path, printer_name: Option<&str>, _paper_size: &str) -> Result<(), String> {
+    print_text_file_with_lp(file_path, printer_name)
+}
+
+#[cfg(any(target_os = "macos", all(unix, not(target_os = "macos"))))]
+fn print_text_file_with_lp(file_path: &Path, printer_name: Option<&str>) -> Result<(), String> {
+    let mut command = Command::new("lp");
+    if let Some(name) = printer_name {
+        command.arg("-d").arg(name);
+    }
+    command.arg(file_path);
+
+    let output = command.output().map_err(|error| error.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(command_output_error("Không gửi được lệnh in qua lp", &output))
+    }
+}
+
+fn command_output_error(context: &str, output: &Output) -> String {
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if !stderr.is_empty() {
+        format!("{context}: {stderr}")
+    } else if !stdout.is_empty() {
+        format!("{context}: {stdout}")
+    } else {
+        format!("{context}. Exit code: {:?}", output.status.code())
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
@@ -474,6 +776,8 @@ fn main() {
             open_path,
             reveal_path,
             list_local_printers,
+            print_invoice_html,
+            test_print,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bloomia");
