@@ -1,0 +1,190 @@
+.button {
+  align-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-weight: 700;
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, var(--color-blush-500), var(--color-peach-500));
+  box-shadow: 0 14px 30px rgba(217, 95, 141, 0.24);
+  color: var(--color-white);
+}
+
+.button-soft {
+  background: var(--color-blush-100);
+  color: var(--color-ink-900);
+}
+
+.button-ghost {
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--color-ink-700);
+}
+
+.soft-card {
+  background: var(--gradient-card);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.soft-card-header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.soft-card-title {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.soft-card-description {
+  color: var(--color-ink-500);
+  margin-top: var(--space-1);
+}
+
+.pill-tabs {
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: 5px;
+}
+
+.pill-tab {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-500);
+  font-weight: 700;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.pill-tab.is-active {
+  background: linear-gradient(135deg, var(--color-blush-100), var(--color-lavender-100));
+  box-shadow: var(--shadow-glow);
+  color: var(--color-ink-900);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field label {
+  color: var(--color-ink-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(184, 174, 186, 0.28);
+  border-radius: var(--radius-md);
+  color: var(--color-ink-900);
+  outline: 0;
+  padding: 12px 14px;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-blush-300);
+  box-shadow: var(--shadow-glow);
+}
+
+.badge {
+  align-items: center;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.badge-pink {
+  background: var(--color-blush-100);
+  color: var(--color-blush-500);
+}
+
+.badge-sage {
+  background: var(--color-sage-100);
+  color: var(--color-sage-500);
+}
+
+.badge-lavender {
+  background: var(--color-lavender-100);
+  color: var(--color-lavender-500);
+}
+
+.badge-peach {
+  background: var(--color-peach-100);
+  color: var(--color-peach-500);
+}
+
+.dialog-backdrop {
+  align-items: center;
+  background: rgba(46, 38, 48, 0.24);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 20;
+}
+
+.dialog-panel {
+  background: var(--gradient-card);
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  max-width: 560px;
+  padding: var(--space-6);
+  width: min(92vw, 560px);
+}
+
+.empty-state {
+  align-items: center;
+  color: var(--color-ink-500);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.empty-state-icon {
+  align-items: center;
+  background: var(--color-blush-50);
+  border-radius: var(--radius-xl);
+  color: var(--color-blush-500);
+  display: flex;
+  font-size: 34px;
+  height: 72px;
+  justify-content: center;
+  width: 72px;
+}
