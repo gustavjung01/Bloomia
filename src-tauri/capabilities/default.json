@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default desktop capability for Bloomia",
   "windows": ["main"],
-  "permissions": ["sql:default"]
+  "permissions": ["core:default", "sql:default"]
 }
