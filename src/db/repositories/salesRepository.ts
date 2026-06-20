@@ -14,6 +14,7 @@ export interface SaleLineDraft {
 }
 
 export interface CreateSaleInput {
+  customerId?: string | null;
   customerName?: string;
   customerPhone?: string;
   note?: string;
@@ -78,7 +79,8 @@ export async function createSale(input: CreateSaleInput) {
 
   await db.execute('BEGIN IMMEDIATE TRANSACTION');
   try {
-    const customerId = await createCustomerIfNeeded(input.customerName, input.customerPhone);
+    const selectedCustomerId = cleanOptional(input.customerId);
+    const customerId = selectedCustomerId ?? await createCustomerIfNeeded(input.customerName, input.customerPhone);
 
     await db.execute(
       'INSERT INTO sales (id, invoice_code, customer_id, subtotal, discount_amount, shipping_fee, total, payment_status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
