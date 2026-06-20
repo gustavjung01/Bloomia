@@ -5,18 +5,21 @@
   "type": "module",
   "scripts": {
     "prepare:assets": "node scripts/generate-release-art.mjs",
+    "configure:updater": "node scripts/configure-updater.mjs",
+    "release:manifest": "node scripts/make-update-feed.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
     "tauri:dev": "npm run prepare:assets && tauri dev",
-    "tauri:build": "npm run prepare:assets && tauri build",
-    "tauri:build:nsis": "npm run prepare:assets && tauri build --bundles nsis",
+    "tauri:build": "npm run prepare:assets && npm run configure:updater && tauri build",
+    "tauri:build:nsis": "npm run prepare:assets && npm run configure:updater && tauri build --bundles nsis",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-sql": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
