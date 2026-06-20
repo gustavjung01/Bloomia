@@ -1,10 +1,17 @@
-import { Button } from '../components/ui';
+import { Badge, Button } from '../components/ui';
 
 interface TopbarProps {
   title: string;
+  databaseStatus: 'idle' | 'ready' | 'error';
 }
 
-export function Topbar({ title }: TopbarProps) {
+const statusLabel = {
+  idle: 'DB đang khởi tạo',
+  ready: 'DB sẵn sàng',
+  error: 'DB lỗi',
+};
+
+export function Topbar({ title, databaseStatus }: TopbarProps) {
   return (
     <header className="topbar">
       <div>
@@ -13,6 +20,9 @@ export function Topbar({ title }: TopbarProps) {
       </div>
 
       <div className="topbar-actions">
+        <Badge tone={databaseStatus === 'ready' ? 'sage' : databaseStatus === 'error' ? 'peach' : 'lavender'}>
+          {statusLabel[databaseStatus]}
+        </Badge>
         <label className="search-field">
           <span>⌕</span>
           <input placeholder="Tìm đơn hàng, khách hàng, sản phẩm..." />
