@@ -48,9 +48,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       COALESCE((SELECT COUNT(*) FROM sales WHERE DATE(sale_date) = DATE('now', 'localtime')), 0) AS todayOrders,
       COALESCE((SELECT COUNT(*) FROM orders WHERE status NOT IN ('completed', 'cancelled')), 0) AS openFlowerOrders,
       COALESCE((SELECT COUNT(*) FROM orders WHERE DATE(delivery_at) = DATE('now', 'localtime') AND status NOT IN ('completed', 'cancelled')), 0) AS deliveryToday,
-      COALESCE((SELECT SUM(sales.total) - SUM(sale_items.cost_price * sale_items.quantity)
-        FROM sales LEFT JOIN sale_items ON sale_items.sale_id = sales.id
-        WHERE DATE(sales.sale_date) = DATE('now', 'localtime')), 0) AS estimatedProfit,
+      COALESCE((
+        SELECT SUM(sales.total - COALESCE(costs.estimated_cost, 0))
+        FROM sales
+        LEFT JOIN (
+          SELECT sale_id, SUM(cost_price * quantity) AS estimated_cost
+          FROM sale_items
+          GROUP BY sale_id
+        ) costs ON costs.sale_id = sales.id
+        WHERE DATE(sales.sale_date) = DATE('now', 'localtime')
+      ), 0) AS estimatedProfit,
       COALESCE((SELECT SUM(quantity_out * unit_cost) FROM stock_movements WHERE movement_type = 'waste' AND DATE(created_at) = DATE('now', 'localtime')), 0) AS wasteCost`,
   );
 
@@ -60,20 +67,25 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 export async function getSalesReport(days = 30) {
   const db = await getDatabase();
   return db.select<SalesReportRow>(
-    `SELECT
-      DATE(sales.sale_date) AS day,
-      COUNT(DISTINCT sales.id) AS orders,
-      COALESCE(SUM(sales.total), 0) AS revenue,
-      COALESCE(SUM(sales.subtotal), 0) AS subtotal,
-      COALESCE(SUM(sales.discount_amount), 0) AS discount_amount,
-      COALESCE(SUM(sales.shipping_fee), 0) AS shipping_fee,
-      COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) AS estimated_cost,
-      COALESCE(SUM(sales.total), 0) - COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) AS estimated_profit
-     FROM sales
-     LEFT JOIN sale_items ON sale_items.sale_id = sales.id
-     WHERE DATE(sales.sale_date) >= DATE('now', ?)
-     GROUP BY DATE(sales.sale_date)
-     ORDER BY day DESC`,
+    `WITH sale_costs AS (
+       SELECT sale_id, SUM(cost_price * quantity) AS estimated_cost
+       FROM sale_items
+       GROUP BY sale_id
+     )
+     SELECT
+       DATE(sales.sale_date) AS day,
+       COUNT(sales.id) AS orders,
+       COALESCE(SUM(sales.total), 0) AS revenue,
+       COALESCE(SUM(sales.subtotal), 0) AS subtotal,
+       COALESCE(SUM(sales.discount_amount), 0) AS discount_amount,
+       COALESCE(SUM(sales.shipping_fee), 0) AS shipping_fee,
+       COALESCE(SUM(sale_costs.estimated_cost), 0) AS estimated_cost,
+       COALESCE(SUM(sales.total), 0) - COALESCE(SUM(sale_costs.estimated_cost), 0) AS estimated_profit
+      FROM sales
+      LEFT JOIN sale_costs ON sale_costs.sale_id = sales.id
+      WHERE DATE(sales.sale_date) >= DATE('now', ?)
+      GROUP BY DATE(sales.sale_date)
+      ORDER BY day DESC`,
     [`-${days} days`],
   );
 }
