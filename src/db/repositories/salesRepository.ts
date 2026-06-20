@@ -186,7 +186,7 @@ async function createCustomerIfNeeded(name?: string, phone?: string) {
 
 function createInvoiceCode() {
   const now = new Date();
-  const date = now.toISOString().slice(0, 10).replaceAll('-', '');
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
   const time = `${now.getHours()}`.padStart(2, '0') + `${now.getMinutes()}`.padStart(2, '0') + `${now.getSeconds()}`.padStart(2, '0');
   const random = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `BLM-${date}-${time}-${random}`;
