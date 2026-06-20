@@ -26,8 +26,8 @@ export async function installBloomiaUpdate(onProgress?: (message: string) => voi
   const update = await check();
   if (!update) return { installed: false, reason: 'no_update' };
   await update.downloadAndInstall((event) => {
-    if (event.event === 'Started') onProgress?.(`Bắt đầu tải ${Math.round(event.data.contentLength / 1024 / 1024)} MB`);
-    if (event.event === 'Progress') onProgress?.(`Đang tải ${Math.round(event.data.chunkLength / 1024)} KB`);
+    if (event.event === 'Started') onProgress?.('Bắt đầu tải update...');
+    if (event.event === 'Progress') onProgress?.('Đang tải update...');
     if (event.event === 'Finished') onProgress?.('Đã tải xong, đang cài update...');
   });
   return { installed: true };
