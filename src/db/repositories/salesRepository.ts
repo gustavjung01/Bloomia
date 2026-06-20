@@ -74,23 +74,32 @@ export async function createSale(input: CreateSaleInput) {
   const db = await getDatabase();
   const saleId = createLocalId('sale');
   const invoiceCode = createInvoiceCode();
-  const customerId = await createCustomerIfNeeded(input.customerName, input.customerPhone);
   const paymentStatus = input.paidAmount >= input.total ? 'paid' : input.paidAmount > 0 ? 'partial' : 'unpaid';
 
-  await db.execute(
-    'INSERT INTO sales (id, invoice_code, customer_id, subtotal, discount_amount, shipping_fee, total, payment_status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [saleId, invoiceCode, customerId, input.subtotal, input.discountAmount, input.shippingFee, input.total, paymentStatus, cleanOptional(input.note)],
-  );
+  await db.execute('BEGIN IMMEDIATE TRANSACTION');
+  try {
+    const customerId = await createCustomerIfNeeded(input.customerName, input.customerPhone);
 
-  for (const line of input.lines) {
-    const costPrice = await allocateLineCost(line, saleId);
     await db.execute(
-      'INSERT INTO sale_items (id, sale_id, item_id, item_name, quantity, unit_price, cost_price, line_total, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [createLocalId('sale-item'), saleId, line.itemId ?? null, line.itemName.trim(), line.quantity, line.unitPrice, costPrice, Math.round(line.quantity * line.unitPrice), cleanOptional(line.note)],
+      'INSERT INTO sales (id, invoice_code, customer_id, subtotal, discount_amount, shipping_fee, total, payment_status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [saleId, invoiceCode, customerId, input.subtotal, input.discountAmount, input.shippingFee, input.total, paymentStatus, cleanOptional(input.note)],
     );
+
+    for (const line of input.lines) {
+      const costPrice = await allocateLineCost(line, saleId);
+      await db.execute(
+        'INSERT INTO sale_items (id, sale_id, item_id, item_name, quantity, unit_price, cost_price, line_total, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [createLocalId('sale-item'), saleId, line.itemId ?? null, line.itemName.trim(), line.quantity, line.unitPrice, costPrice, Math.round(line.quantity * line.unitPrice), cleanOptional(line.note)],
+      );
+    }
+
+    await db.execute('INSERT INTO payments (id, sale_id, method, amount, note) VALUES (?, ?, ?, ?, ?)', [createLocalId('payment'), saleId, input.paymentMethod, input.paidAmount, null]);
+    await db.execute('COMMIT');
+  } catch (error) {
+    await db.execute('ROLLBACK');
+    throw error;
   }
 
-  await db.execute('INSERT INTO payments (id, sale_id, method, amount, note) VALUES (?, ?, ?, ?, ?)', [createLocalId('payment'), saleId, input.paymentMethod, input.paidAmount, null]);
   return getSaleById(saleId);
 }
 
