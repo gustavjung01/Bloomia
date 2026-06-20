@@ -4,7 +4,7 @@
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-4);
+  padding: var(--space-3);
 }
 
 .purchase-total-pill span,
@@ -20,8 +20,11 @@
 
 .purchase-line-list {
   display: grid;
-  gap: var(--space-4);
-  margin: var(--space-5) 0;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  max-height: min(48vh, 520px);
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .purchase-line-row {
@@ -30,14 +33,17 @@
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: 1.4fr 100px 130px 150px 1fr auto;
+  grid-template-columns: 1.4fr 90px 120px 140px 1fr auto;
   padding: var(--space-3);
 }
 
 .inventory-overview-grid {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: min(50vh, 520px);
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .inventory-overview-card {
@@ -45,12 +51,15 @@
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-4);
+  padding: var(--space-3);
 }
 
 .inventory-table {
   display: grid;
   gap: var(--space-2);
+  max-height: min(56vh, 620px);
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .inventory-table-head,
@@ -58,6 +67,15 @@
   display: grid;
   gap: var(--space-3);
   grid-template-columns: 1.4fr 1fr 1fr 1fr 0.8fr 1fr;
+}
+
+.inventory-table-head {
+  color: var(--color-ink-500);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0 var(--space-3);
+  text-transform: uppercase;
 }
 
 .inventory-table-row {
