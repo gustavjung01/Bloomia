@@ -1,4 +1,5 @@
 @import './settings.css';
+@import './pos.css';
 
 * {
   box-sizing: border-box;

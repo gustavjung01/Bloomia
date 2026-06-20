@@ -44,6 +44,7 @@ Vì vậy Bloomia cần hỗ trợ:
 - [Implementation Task Board](docs/05_TASK_BOARD.md)
 - [Phase A Implementation](docs/06_PHASE_A_IMPLEMENTATION.md)
 - [Phase B Implementation](docs/07_PHASE_B_IMPLEMENTATION.md)
+- [Phase C Implementation](docs/08_PHASE_C_IMPLEMENTATION.md)
 
 ## Công nghệ đề xuất
 
