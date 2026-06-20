@@ -1,5 +1,6 @@
 @import './settings.css';
 @import './pos.css';
+@import './inventory.css';
 
 * {
   box-sizing: border-box;
