@@ -42,6 +42,8 @@ Vì vậy Bloomia cần hỗ trợ:
 - [Backlog Module Lớn](docs/03_BACKLOG.md)
 - [AI Per-Tab Popup & Data Store Plan](docs/04_AI_TAB_DATA_STORES.md)
 - [Implementation Task Board](docs/05_TASK_BOARD.md)
+- [Phase A Implementation](docs/06_PHASE_A_IMPLEMENTATION.md)
+- [Phase B Implementation](docs/07_PHASE_B_IMPLEMENTATION.md)
 
 ## Công nghệ đề xuất
 
