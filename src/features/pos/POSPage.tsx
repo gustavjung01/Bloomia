@@ -75,7 +75,7 @@ export function POSPage() {
     setCart((current) => {
       const existing = current.find((line) => line.itemId === item.id && !line.isCustom);
       if (existing) return current.map((line) => line.id === existing.id ? { ...line, quantity: normalizeQuantity(line.quantity + 1) } : line);
-      return [...current, { id: createLocalId('cart'), itemId: item.id, itemName: item.name, quantity: 1, unitPrice: item.default_sale_price, costPrice: 0, note: item.item_type === 'service' ? 'Dịch vụ không trừ kho' : '' }];
+      return [...current, { id: createLocalId('cart'), itemId: item.id, itemName: item.name, quantity: 1, unitPrice: item.default_sale_price, costPrice: item.default_purchase_price, note: item.item_type === 'service' ? 'Dịch vụ không trừ kho' : '' }];
     });
   }
 
