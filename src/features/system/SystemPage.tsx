@@ -1,0 +1,102 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { Badge, Button, SelectField, SoftCard } from '../../components/ui';
+import { backupBloomiaDatabase, getBloomiaAppStatus, listBloomiaBackups, saveBloomiaMedia, type BloomiaAppStatus, type MediaSaveResult } from '../../services/system/systemService';
+
+const ownerOptions = [
+  { label: 'Logo shop', value: 'shop' },
+  { label: 'Hàng hóa / sản phẩm', value: 'items' },
+  { label: 'Mẫu hoa / recipe', value: 'recipes' },
+  { label: 'Đơn hoa', value: 'orders' },
+  { label: 'Khách hàng', value: 'customers' },
+];
+
+export function SystemPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [status, setStatus] = useState<BloomiaAppStatus | null>(null);
+  const [backups, setBackups] = useState<string[]>([]);
+  const [mediaOwner, setMediaOwner] = useState<'shop' | 'items' | 'recipes' | 'orders' | 'customers'>('items');
+  const [lastMedia, setLastMedia] = useState<MediaSaveResult | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => { void refresh(); }, []);
+
+  async function refresh() {
+    try {
+      setError('');
+      const [nextStatus, nextBackups] = await Promise.all([getBloomiaAppStatus(), listBloomiaBackups()]);
+      setStatus(nextStatus);
+      setBackups(nextBackups);
+    } catch (caught) {
+      console.error(caught);
+      setError('Không đọc được trạng thái hệ thống. Cần chạy trong Tauri runtime.');
+    }
+  }
+
+  async function handleBackup() {
+    try {
+      setMessage('Đang backup DB...');
+      setError('');
+      const path = await backupBloomiaDatabase();
+      setMessage(`Đã tạo backup: ${path}`);
+      await refresh();
+    } catch (caught) {
+      console.error(caught);
+      setMessage('');
+      setError('Không backup được DB. Có thể DB chưa được tạo hoặc app chưa chạy migration.');
+    }
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setMessage('Đang lưu ảnh vào media local...');
+      setError('');
+      const result = await saveBloomiaMedia(mediaOwner, file);
+      setLastMedia(result);
+      setMessage(`Đã lưu ảnh: ${result.relative_path}`);
+      await refresh();
+    } catch (caught) {
+      console.error(caught);
+      setMessage('');
+      setError('Không lưu được ảnh. Chỉ nhận png, jpg, jpeg, webp.');
+    }
+  }
+
+  return (
+    <>
+      <div className="page-title-row"><div><span className="eyebrow">Hệ thống</span><h2>DB, media, backup & release</h2></div><Button onClick={refresh}>Làm mới</Button></div>
+      {(message || error) && <div className="setup-status-row">{message && <Badge tone="sage">{message}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
+      <div className="page-grid">
+        <SoftCard className="span-6" title="Local database" description="Cài mới phải tự tạo DB local và giữ lại khi update.">
+          <div className="system-info-list">
+            <div><span>DB status</span><strong>{status?.database_exists ? 'Đã có DB' : 'Chưa thấy file DB'}</strong></div>
+            <div><span>App data</span><code>{status?.app_data_dir ?? '—'}</code></div>
+            <div><span>Database</span><code>{status?.database_path ?? '—'}</code></div>
+            <div><span>Media</span><code>{status?.media_dir ?? '—'}</code></div>
+          </div>
+          <Button variant="soft" onClick={handleBackup}>Backup DB ngay</Button>
+        </SoftCard>
+
+        <SoftCard className="span-6" title="Upload ảnh local" description="Dùng file picker/input, không nhập hay dán đường dẫn ảnh.">
+          <div className="setup-form-grid">
+            <SelectField label="Loại ảnh" value={mediaOwner} options={ownerOptions} onChange={(event) => setMediaOwner(event.target.value as typeof mediaOwner)} />
+            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handleFileChange} />
+            <Button onClick={() => fileInputRef.current?.click()}>Upload ảnh</Button>
+          </div>
+          {lastMedia && <div className="system-info-list"><div><span>File đã lưu</span><code>{lastMedia.full_path}</code></div><div><span>Dung lượng</span><strong>{Math.round(lastMedia.size_bytes / 1024)} KB</strong></div></div>}
+        </SoftCard>
+
+        <SoftCard className="span-12" title="Backups gần đây" description="Các backup nằm trong app data local, chưa upload cloud.">
+          <div className="system-info-list">
+            {backups.length === 0 && <p className="setup-muted">Chưa có backup.</p>}
+            {backups.map((path) => <div key={path}><span>Backup</span><code>{path}</code></div>)}
+          </div>
+        </SoftCard>
+      </div>
+    </>
+  );
+}
