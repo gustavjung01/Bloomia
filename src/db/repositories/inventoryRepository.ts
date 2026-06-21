@@ -77,7 +77,7 @@ export interface AdjustmentInput {
 }
 
 export interface FifoAllocation {
-  batchId: string;
+  batchId: string | null;
   quantity: number;
   unitCost: number;
 }
@@ -133,7 +133,11 @@ export async function listInventoryOverview() {
        items.name AS item_name,
        items.item_type,
        units.symbol AS unit_symbol,
-       COALESCE(SUM(CASE WHEN purchase_batches.remaining_quantity > 0 THEN purchase_batches.remaining_quantity ELSE 0 END), 0) AS total_quantity,
+       COALESCE((
+         SELECT SUM(stock_movements.quantity_in - stock_movements.quantity_out)
+         FROM stock_movements
+         WHERE stock_movements.item_id = items.id
+       ), 0) AS total_quantity,
        (
          SELECT pb.unit_cost
          FROM purchase_batches pb
@@ -242,6 +246,8 @@ export async function allocateFifo(
     referenceId?: string;
     reason?: string;
     note?: string;
+    allowShortfall?: boolean;
+    shortfallUnitCost?: number;
   },
 ): Promise<FifoAllocation[]> {
   const quantity = normalizePositive(requestedQuantity);
@@ -255,7 +261,7 @@ export async function allocateFifo(
   );
 
   const available = batches.reduce((sum, batch) => sum + batch.remaining_quantity, 0);
-  if (available < quantity) {
+  if (available < quantity && !options.allowShortfall) {
     throw new Error(`Không đủ tồn kho. Cần ${quantity}, hiện còn ${available}.`);
   }
 
@@ -292,13 +298,37 @@ export async function allocateFifo(
     remaining -= take;
   }
 
+  if (remaining > 0 && options.allowShortfall) {
+    const fallbackCost = normalizeMoney(options.shortfallUnitCost ?? 0);
+    const shortfallReason = `${options.reason ?? 'Xuất kho'} • Bán vượt tồn`;
+    await db.execute(
+      `INSERT INTO stock_movements (
+        id, item_id, batch_id, movement_type, quantity_in, quantity_out, unit_cost, reference_type, reference_id, reason, note
+      ) VALUES (?, ?, NULL, ?, 0, ?, ?, ?, ?, ?, ?)`,
+      [
+        createLocalId('move-shortfall'),
+        itemId,
+        options.movementType,
+        remaining,
+        fallbackCost,
+        cleanOptional(options.referenceType),
+        cleanOptional(options.referenceId),
+        shortfallReason,
+        cleanOptional(options.note),
+      ],
+    );
+    allocations.push({ batchId: null, quantity: remaining, unitCost: fallbackCost });
+  }
+
   return allocations;
 }
 
 export async function getItemStock(itemId: string) {
   const db = await getDatabase();
   const rows = await db.select<{ quantity: number }>(
-    'SELECT COALESCE(SUM(remaining_quantity), 0) AS quantity FROM purchase_batches WHERE item_id = ?',
+    `SELECT COALESCE(SUM(quantity_in - quantity_out), 0) AS quantity
+     FROM stock_movements
+     WHERE item_id = ?`,
     [itemId],
   );
   return rows[0]?.quantity ?? 0;
