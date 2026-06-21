@@ -23,47 +23,82 @@
 .pos-product-grid {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   max-height: min(56vh, 560px);
   overflow: auto;
   padding-right: 4px;
 }
 
 .pos-product-card {
+  align-content: start;
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: var(--radius-lg);
   color: var(--color-ink-900);
   display: grid;
-  gap: var(--space-2);
+  gap: 6px;
+  min-height: 112px;
   overflow: hidden;
-  padding: var(--space-3);
+  padding: 10px;
   text-align: left;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .pos-product-card:hover {
+  border-color: rgba(217, 95, 141, 0.26);
   box-shadow: var(--shadow-card);
   transform: translateY(-2px);
 }
 
+.pos-product-card:has(> .pos-product-image) {
+  align-items: center;
+  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  min-height: 104px;
+}
+
+.pos-product-card:has(> .pos-product-image) > .pos-product-image {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+
+.pos-product-card:has(> .pos-product-image) > :not(.pos-product-image) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.pos-product-card strong {
+  display: -webkit-box;
+  font-size: 14px;
+  line-height: 1.3;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .pos-product-card span:last-child {
-  color: var(--color-ink-500);
-  font-weight: 700;
+  color: var(--color-ink-700);
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .pos-product-image {
-  aspect-ratio: 4 / 3;
-  border-radius: var(--radius-md);
-  box-shadow: 0 12px 24px rgba(91, 74, 88, 0.12);
+  background: linear-gradient(145deg, var(--color-blush-50), var(--color-lavender-50));
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(91, 74, 88, 0.12);
+  height: 78px;
   object-fit: cover;
-  width: 100%;
+  width: 78px;
 }
 
 .item-photo-preview {
-  aspect-ratio: 4 / 3;
+  background: linear-gradient(145deg, var(--color-blush-50), var(--color-lavender-50));
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+  height: 180px;
+  max-width: 260px;
   object-fit: cover;
   width: 100%;
 }
