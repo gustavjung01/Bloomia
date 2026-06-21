@@ -1,6 +1,7 @@
 @import './workflowPreview.css';
 @import './flowerOrderPreview.css';
 @import './sidebarArt.css';
+@import './brandLogo.css';
 
 .page-content {
   --bloomia-floral-opacity: 0.14;
