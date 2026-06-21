@@ -3,6 +3,8 @@ import { createLocalId } from '../../utils/id';
 import { allocateFifo, getItemStock } from './inventoryRepository';
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'debt';
+export type SaleStatus = 'pending_payment' | 'completed' | 'cancelled';
+export type RefundStatus = 'not_required' | 'required' | 'refunded';
 
 export interface SaleLineDraft {
   itemId?: string | null;
@@ -63,6 +65,17 @@ export interface SaleRecord {
   shipping_fee: number;
   total: number;
   payment_status: string;
+  sale_status: SaleStatus;
+  finalized_at: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  refund_status: RefundStatus;
+  refunded_at: string | null;
+  revision_no: number;
+  print_count: number;
+  last_printed_at: string | null;
+  replaces_sale_id: string | null;
+  replaced_by_sale_id: string | null;
   note: string | null;
 }
 
@@ -133,7 +146,10 @@ export async function createSale(input: CreateSaleInput) {
     const customerId = selectedCustomerId ?? await createCustomerIfNeeded(input.customerName, input.customerPhone);
 
     await db.execute(
-      'INSERT INTO sales (id, invoice_code, customer_id, subtotal, discount_amount, shipping_fee, total, payment_status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      `INSERT INTO sales (
+        id, invoice_code, customer_id, subtotal, discount_amount, shipping_fee, total,
+        payment_status, sale_status, finalized_at, note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', CURRENT_TIMESTAMP, ?)`,
       [saleId, invoiceCode, customerId, input.subtotal, input.discountAmount, input.shippingFee, input.total, paymentStatus, cleanOptional(input.note)],
     );
 
@@ -211,9 +227,10 @@ export async function searchSales(query: string, limit = 80) {
      WHERE sales.invoice_code LIKE ? COLLATE NOCASE
         OR customers.name LIKE ? COLLATE NOCASE
         OR customers.phone LIKE ? COLLATE NOCASE
+        OR sales.sale_status LIKE ? COLLATE NOCASE
      ORDER BY sales.sale_date DESC
      LIMIT ?`,
-    [pattern, pattern, pattern, limit],
+    [pattern, pattern, pattern, pattern, limit],
   );
 }
 
