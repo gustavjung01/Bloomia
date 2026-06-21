@@ -17,7 +17,9 @@ export function AppLayout({ activeRoute, routeTitle, databaseStatus, onRouteChan
       <Sidebar activeRoute={activeRoute} onRouteChange={onRouteChange} />
       <main className="app-main">
         <Topbar title={routeTitle} databaseStatus={databaseStatus} />
-        <section className="page-content">{children}</section>
+        <section className="page-content" data-route={activeRoute}>
+          <div className="page-workspace">{children}</div>
+        </section>
       </main>
     </div>
   );
