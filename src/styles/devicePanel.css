@@ -1,0 +1,71 @@
+.device-payment-preview {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  max-width: 100%;
+}
+
+.payment-qr-preview {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--space-4);
+}
+
+.payment-qr-preview img {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(91, 74, 88, 0.12);
+  max-height: 300px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.pos-bank-transfer-card {
+  background: rgba(244, 240, 255, 0.9);
+  border: 1px solid rgba(139, 111, 192, 0.22);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.pos-bank-transfer-card img {
+  background: white;
+  border-radius: 14px;
+  justify-self: center;
+  max-height: 230px;
+  object-fit: contain;
+  width: min(100%, 230px);
+}
+
+.pos-bank-transfer-meta {
+  display: grid;
+  gap: 5px;
+  text-align: center;
+}
+
+.pos-bank-transfer-meta strong,
+.pos-bank-transfer-meta span {
+  overflow-wrap: anywhere;
+}
+
+.pos-bank-transfer-meta span {
+  color: var(--color-ink-500);
+  font-size: 12px;
+}
+
+.pos-transfer-confirm {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(95, 143, 114, 0.28);
+}
+
+@media (max-width: 1260px) {
+  .device-payment-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
