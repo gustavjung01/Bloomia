@@ -1,0 +1,124 @@
+.page-title-row {
+  margin-bottom: 12px;
+}
+
+.page-title-row h2 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.page-grid {
+  gap: 12px;
+}
+
+.soft-card {
+  padding: 14px;
+}
+
+.soft-card-header {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.soft-card-title {
+  font-size: 16px;
+}
+
+.soft-card-description {
+  font-size: 12px;
+}
+
+.button {
+  min-height: 36px;
+  padding-inline: 13px;
+}
+
+.pill-tabs {
+  padding: 4px;
+}
+
+.pill-tab {
+  min-height: 32px;
+  padding-inline: 12px;
+}
+
+.field {
+  gap: 6px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 9px 11px;
+}
+
+.report-page-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.report-folder-hint {
+  color: var(--color-ink-500);
+  font-size: 11px;
+  margin: -4px 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.report-metric-card h2 {
+  font-size: 20px;
+  margin-top: 10px;
+}
+
+.report-data-card {
+  min-height: 0;
+}
+
+.report-data-card .report-table {
+  max-height: calc(100vh - 360px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-height: 760px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .app-main {
+    padding-left: 10px;
+  }
+
+  .topbar {
+    padding: 4px 6px 10px;
+  }
+
+  .topbar h1 {
+    font-size: 26px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  .pos-checkout-panel,
+  .pos-completed-panel {
+    max-height: calc(100vh - 118px);
+    min-height: 0;
+  }
+
+  .pos-product-grid {
+    max-height: calc(100vh - 300px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .soft-card,
+  .button,
+  .nav-item,
+  .pos-product-card {
+    transition-duration: 120ms;
+  }
+}
