@@ -303,9 +303,13 @@ export function useSaleLifecyclePos() {
       });
       setCompletedSale(sale);
       setCart([]);
+      setEditingPendingId(null);
+      setReplacementSourceId(null);
       setStatus(`Đã chốt ${sale.sale.invoice_code}.`);
       setSavedSales(await listRecentSales(100));
+      setCustomers(await listCustomers());
       if (deviceSettings.autoPrintAfterPayment) await printDocument(sale);
+      void dispatchAIEvent('sale_created', `Đã chốt hóa đơn ${sale.sale.invoice_code}`, `Tổng tiền ${formatCurrency(sale.sale.total)}`, { saleId: sale.sale.id }).catch(() => undefined);
     } catch (caught) {
       setError(errorText(caught));
     } finally {
@@ -352,9 +356,18 @@ export function useSaleLifecyclePos() {
   async function cancelSaleById(id: string) {
     const reason = window.prompt('Lý do hủy đơn:', 'Khách hủy đơn')?.trim();
     if (!reason) return;
+    const wasActivePending = pendingSale?.sale.id === id || editingPendingId === id;
     try {
       const cancelled = await cancelSale(id, reason);
-      if (pendingSale?.sale.id === id) setPendingSale(null);
+      if (wasActivePending) {
+        setPendingSale(null);
+        setEditingPendingId(null);
+        setReplacementSourceId(null);
+        setCart([]);
+        setStockWarnings([]);
+        setDraftInvoiceCode(createSaleInvoiceCode());
+        setTransferConfirmed(false);
+      }
       if (completedSale?.sale.id === id) setCompletedSale(cancelled);
       setSavedSales(await listRecentSales(100));
       setStatus(cancelled.sale.refund_status === 'required'
@@ -420,14 +433,13 @@ export function useSaleLifecyclePos() {
       await recordSalePrint(sale.sale.id);
       setStatus(`${sale.sale.sale_status === 'pending_payment' ? 'Đã in phiếu thanh toán' : 'Đã in hóa đơn'} trên ${printer?.printer_name || 'máy in mặc định'}.`);
     } catch (caught) {
-      setError(`Không in được: ${caught instanceof Error ? caught.message : String(caught)}`);
-      throw caught;
+      setError(`Giao dịch đã lưu nhưng không in được: ${caught instanceof Error ? caught.message : String(caught)}`);
     }
   }
 
   async function printById(id: string) {
     try { await printDocument(await getSaleById(id)); }
-    catch { /* error is set by printDocument */ }
+    catch { setError('Không tải được dữ liệu để in.'); }
   }
 
   function newSale() {
@@ -449,6 +461,8 @@ export function useSaleLifecyclePos() {
     setPendingSale(null);
     setCompletedSale(null);
     setCheckoutFeedback('');
+    setError('');
+    setStatus('Đã sẵn sàng tạo đơn mới.');
     setView('sale');
   }
 
