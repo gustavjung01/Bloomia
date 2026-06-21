@@ -32,20 +32,22 @@ body::after {
 }
 
 body::before {
-  background-image: var(--pattern-floral), var(--pattern-floral);
-  background-position: 32px 24px, 150px 128px;
-  background-size: 236px 236px, 318px 318px;
-  -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.82), transparent 74%);
-  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.82), transparent 74%);
-  opacity: 0.48;
+  background-image:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.72) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 76% 62%, rgba(217, 95, 141, 0.1) 0 1px, transparent 1.5px);
+  background-position: 0 0, 18px 22px;
+  background-size: 42px 42px, 56px 56px;
+  opacity: 0.56;
   z-index: 0;
 }
 
 body::after {
-  background: radial-gradient(circle at 8% 92%, rgba(217, 95, 141, 0.17), transparent 24%),
-    radial-gradient(circle at 96% 78%, rgba(139, 111, 192, 0.17), transparent 30%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.28), transparent 28%, rgba(255, 255, 255, 0.22));
-  opacity: 0.94;
+  background:
+    radial-gradient(circle at 6% 94%, rgba(217, 95, 141, 0.18), transparent 25%),
+    radial-gradient(circle at 95% 12%, rgba(139, 111, 192, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 88%, rgba(95, 143, 114, 0.13), transparent 27%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0.32), transparent 34%, rgba(255, 255, 255, 0.14));
+  opacity: 0.92;
   z-index: 0;
 }
 
@@ -53,6 +55,20 @@ body::after {
   isolation: isolate;
   position: relative;
   z-index: 1;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+pre,
+code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .page-content,
@@ -64,6 +80,7 @@ body::after {
 .page-content::before,
 .page-content::after,
 .sidebar::before {
+  content: '';
   pointer-events: none;
   position: absolute;
   user-select: none;
@@ -71,41 +88,49 @@ body::after {
 }
 
 .page-content::before {
-  color: rgba(217, 95, 141, 0.12);
-  content: '❀';
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 210px;
-  line-height: 1;
-  right: -18px;
+  background: url('../assets/botanical-corner.svg') top right / contain no-repeat;
+  height: 390px;
+  opacity: 0.28;
+  right: -36px;
   top: -28px;
-  transform: rotate(12deg);
+  width: 305px;
+  -webkit-mask-image: linear-gradient(145deg, #000 42%, transparent 96%);
+  mask-image: linear-gradient(145deg, #000 42%, transparent 96%);
 }
 
 .page-content::after {
-  bottom: 8px;
-  color: rgba(139, 111, 192, 0.1);
-  content: '✿  ❁';
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 74px;
-  left: 22px;
-  letter-spacing: 14px;
-  transform: rotate(-8deg);
+  background:
+    radial-gradient(circle at 28% 36%, rgba(217, 95, 141, 0.11), transparent 42%),
+    radial-gradient(circle at 70% 68%, rgba(139, 111, 192, 0.1), transparent 45%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  bottom: -105px;
+  filter: blur(1px);
+  height: 260px;
+  left: -82px;
+  transform: rotate(-12deg);
+  width: 390px;
 }
 
 .sidebar::before {
-  color: rgba(95, 143, 114, 0.13);
-  content: '❦';
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 92px;
-  right: -12px;
-  top: 54px;
-  transform: rotate(18deg);
+  background: url('../assets/botanical-corner.svg') center / contain no-repeat;
+  bottom: -42px;
+  height: 250px;
+  opacity: 0.2;
+  right: -88px;
+  transform: rotate(178deg);
+  width: 198px;
 }
 
 .page-content > *,
 .sidebar > * {
   position: relative;
   z-index: 1;
+}
+
+.page-content *,
+.sidebar * {
+  min-width: 0;
 }
 
 button,
@@ -128,29 +153,49 @@ p {
 
 .eyebrow {
   color: var(--color-blush-500);
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   margin-bottom: var(--space-1);
+  position: relative;
   text-transform: uppercase;
+}
+
+.eyebrow::after {
+  background: linear-gradient(90deg, var(--color-blush-300), transparent);
+  border-radius: var(--radius-pill);
+  content: '';
+  height: 1px;
+  margin-left: 9px;
+  margin-top: 7px;
+  width: 32px;
 }
 
 .page-title-row {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4);
   justify-content: space-between;
   margin-bottom: var(--space-5);
+  max-width: 100%;
+}
+
+.page-title-row > * {
+  min-width: 0;
 }
 
 .page-grid {
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  max-width: 100%;
+  width: 100%;
 }
 
 .page-grid > * {
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -180,4 +225,15 @@ p {
 
 .span-12 {
   grid-column: span 12;
+}
+
+@media (max-width: 1260px) {
+  .page-title-row {
+    align-items: flex-start;
+  }
+
+  .page-content::before {
+    opacity: 0.2;
+    width: 250px;
+  }
 }
