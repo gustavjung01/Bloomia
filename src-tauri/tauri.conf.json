@@ -12,15 +12,16 @@
   "app": {
     "windows": [
       {
-        "title": "Bloomia",
-        "width": 1440,
-        "height": 920,
-        "minWidth": 1180,
-        "minHeight": 760,
-        "resizable": true,
+        "title": "Chào mừng đến Bloomia",
+        "width": 650,
+        "height": 630,
+        "minWidth": 600,
+        "minHeight": 570,
+        "resizable": false,
         "maximizable": true,
         "minimizable": true,
         "closable": true,
+        "center": true,
         "decorations": true
       }
     ],
