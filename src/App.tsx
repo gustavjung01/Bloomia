@@ -3,16 +3,95 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppLayout } from './app/AppLayout';
 import { routes, type RouteKey } from './app/routes';
 import { Button } from './components/ui';
+import { LicenseActivationGate } from './features/license/LicenseActivationGate';
 import { bootstrapLocalDatabase } from './services/appBootstrap';
+import {
+  activateBloomiaLicense,
+  buildBloomiaMachineIdentity,
+  canUseSignedOfflineLease,
+  clearBloomiaLicenseCache,
+  friendlyLicenseError,
+  isNetworkLicenseError,
+  loadBloomiaLicenseCache,
+  saveBloomiaLicenseCache,
+  showActivationWindow,
+  showMainBloomiaWindow,
+  verifyBloomiaLicense,
+  type BloomiaMachineIdentity,
+} from './services/licenseService';
+
+type LicenseStage = 'checking' | 'activation' | 'active' | 'offline_grace';
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('dashboard');
   const [databaseStatus, setDatabaseStatus] = useState<'idle' | 'ready' | 'error'>('idle');
   const [databaseError, setDatabaseError] = useState('');
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
+  const [licenseStage, setLicenseStage] = useState<LicenseStage>('checking');
+  const [machineIdentity, setMachineIdentity] = useState<BloomiaMachineIdentity | null>(null);
+  const [licenseMessage, setLicenseMessage] = useState('');
+  const [licenseBusy, setLicenseBusy] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
+    async function prepareLicense() {
+      await showActivationWindow();
+      const identity = await buildBloomiaMachineIdentity();
+      if (!isMounted) return;
+      setMachineIdentity(identity);
+
+      const cached = loadBloomiaLicenseCache();
+      if (!cached) {
+        setLicenseStage('activation');
+        return;
+      }
+
+      if (cached.machineId !== identity.machineId) {
+        clearBloomiaLicenseCache();
+        setLicenseMessage('License cũ không thuộc ID máy hiện tại. Vui lòng nhập key để kích hoạt máy này.');
+        setLicenseStage('activation');
+        return;
+      }
+
+      try {
+        const verified = await verifyBloomiaLicense(cached, identity);
+        saveBloomiaLicenseCache(verified);
+        await showMainBloomiaWindow();
+        if (isMounted) setLicenseStage('active');
+      } catch (error) {
+        if (isNetworkLicenseError(error) && await canUseSignedOfflineLease(cached, identity)) {
+          await showMainBloomiaWindow();
+          if (isMounted) setLicenseStage('offline_grace');
+          return;
+        }
+
+        if (!isNetworkLicenseError(error)) {
+          clearBloomiaLicenseCache();
+        }
+        if (isMounted) {
+          setLicenseMessage(friendlyLicenseError(error));
+          setLicenseStage('activation');
+        }
+      }
+    }
+
+    void prepareLicense().catch((error) => {
+      if (!isMounted) return;
+      setLicenseMessage(friendlyLicenseError(error));
+      setLicenseStage('activation');
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (licenseStage !== 'active' && licenseStage !== 'offline_grace') return;
+
+    let isMounted = true;
+    setDatabaseStatus('idle');
 
     bootstrapLocalDatabase()
       .then(() => {
@@ -32,10 +111,27 @@ export function App() {
     return () => {
       isMounted = false;
     };
-  }, [bootstrapAttempt]);
+  }, [bootstrapAttempt, licenseStage]);
 
   const route = useMemo(() => routes.find((item) => item.key === activeRoute) ?? routes[0], [activeRoute]);
   const Page = route.component;
+
+  async function handleActivateLicense(licenseKey: string) {
+    if (!machineIdentity || licenseBusy) return;
+
+    try {
+      setLicenseBusy(true);
+      setLicenseMessage('');
+      const activated = await activateBloomiaLicense(licenseKey, machineIdentity);
+      saveBloomiaLicenseCache(activated);
+      await showMainBloomiaWindow();
+      setLicenseStage('active');
+    } catch (error) {
+      setLicenseMessage(friendlyLicenseError(error));
+    } finally {
+      setLicenseBusy(false);
+    }
+  }
 
   function retryDatabaseBootstrap() {
     setDatabaseError('');
@@ -43,8 +139,25 @@ export function App() {
     setBootstrapAttempt((current) => current + 1);
   }
 
+  if (licenseStage === 'checking' || licenseStage === 'activation') {
+    return (
+      <LicenseActivationGate
+        mode={licenseStage === 'checking' ? 'checking' : 'activation'}
+        machineIdentity={machineIdentity}
+        busy={licenseBusy}
+        message={licenseMessage}
+        onActivate={handleActivateLicense}
+      />
+    );
+  }
+
   return (
     <AppLayout activeRoute={activeRoute} onRouteChange={setActiveRoute} routeTitle={route.label} databaseStatus={databaseStatus}>
+      {licenseStage === 'offline_grace' && (
+        <div className="license-offline-notice">
+          Bloomia đang dùng giấy phép ngoại tuyến có chữ ký. Hãy kết nối Internet trước khi thời gian dự phòng kết thúc.
+        </div>
+      )}
       {databaseStatus === 'ready' && <Page />}
       {databaseStatus === 'idle' && (
         <div className="glass-card">
