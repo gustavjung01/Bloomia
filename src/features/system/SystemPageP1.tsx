@@ -76,19 +76,19 @@ export function SystemPageP1() {
         ))}
       </div>
 
-      <Dialog open={activePanel === 'readiness'} title="Sẵn sàng phát hành" onClose={() => setActivePanel(null)}>
+      <Dialog open={activePanel === 'readiness'} title="Sẵn sàng phát hành" className="dialog-panel-wide" onClose={() => setActivePanel(null)}>
         <div className="system-modal-content"><P0ReadinessPanel /></div>
       </Dialog>
 
-      <Dialog open={activePanel === 'printer'} title="Máy in & thanh toán" onClose={() => setActivePanel(null)}>
+      <Dialog open={activePanel === 'printer'} title="Máy in & thanh toán" className="dialog-panel-wide" onClose={() => setActivePanel(null)}>
         <div className="system-modal-content"><PrinterDiagnosticsPanel /></div>
       </Dialog>
 
-      <Dialog open={activePanel === 'acceptance'} title="Checklist nghiệm thu P0" onClose={() => setActivePanel(null)}>
+      <Dialog open={activePanel === 'acceptance'} title="Checklist nghiệm thu P0" className="dialog-panel-wide" onClose={() => setActivePanel(null)}>
         <div className="system-modal-content"><P0AcceptanceChecklist /></div>
       </Dialog>
 
-      <Dialog open={activePanel === 'runtime'} title="Runtime, backup & media" onClose={() => setActivePanel(null)}>
+      <Dialog open={activePanel === 'runtime'} title="Runtime, backup & media" className="dialog-panel-wide" onClose={() => setActivePanel(null)}>
         <div className="system-modal-content system-runtime-modal"><SystemPage /></div>
       </Dialog>
     </>
