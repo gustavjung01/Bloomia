@@ -24,6 +24,8 @@ export interface CreateSaleInput {
   total: number;
   paymentMethod: PaymentMethod;
   paidAmount: number;
+  receivedAmount: number;
+  returnedAmount: number;
   lines: SaleLineDraft[];
 }
 
@@ -59,6 +61,8 @@ export interface PaymentRecord {
   sale_id: string;
   method: PaymentMethod;
   amount: number;
+  received_amount: number;
+  returned_amount: number;
   paid_at: string;
   note: string | null;
 }
@@ -83,7 +87,10 @@ export async function createSale(input: CreateSaleInput) {
   const db = await getDatabase();
   const saleId = createLocalId('sale');
   const invoiceCode = createInvoiceCode();
-  const paymentStatus = input.paidAmount >= input.total ? 'paid' : input.paidAmount > 0 ? 'partial' : 'unpaid';
+  const paidAmount = Math.max(0, Math.min(input.total, Math.round(input.paidAmount)));
+  const receivedAmount = Math.max(paidAmount, Math.round(input.receivedAmount));
+  const returnedAmount = Math.max(0, Math.round(input.returnedAmount));
+  const paymentStatus = paidAmount >= input.total ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
 
   await db.execute('BEGIN IMMEDIATE TRANSACTION');
   try {
@@ -103,7 +110,10 @@ export async function createSale(input: CreateSaleInput) {
       );
     }
 
-    await db.execute('INSERT INTO payments (id, sale_id, method, amount, note) VALUES (?, ?, ?, ?, ?)', [createLocalId('payment'), saleId, input.paymentMethod, input.paidAmount, null]);
+    await db.execute(
+      'INSERT INTO payments (id, sale_id, method, amount, received_amount, returned_amount, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [createLocalId('payment'), saleId, input.paymentMethod, paidAmount, receivedAmount, returnedAmount, null],
+    );
     await db.execute('COMMIT');
   } catch (error) {
     await db.execute('ROLLBACK');
