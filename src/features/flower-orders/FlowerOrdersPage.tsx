@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Badge, Button, SelectField, SoftCard, TextArea, TextField } from '../../components/ui';
+import { Badge, Button, Dialog, EmptyState, SelectField, SoftCard, TextArea, TextField } from '../../components/ui';
 import { listFlowerOrders, listTodayDeliveries, saveFlowerOrder, updateFlowerOrderStatus, type FlowerOrderRecord, type FlowerOrderStatus } from '../../db/repositories/ordersRepository';
 import { formatCurrency } from '../../utils/format';
 
@@ -17,6 +17,8 @@ interface OrderFormState {
   cardMessage: string;
   internalNote: string;
 }
+
+type FlowerOrderDialog = 'form' | 'today' | null;
 
 const emptyForm: OrderFormState = { customerName: '', customerPhone: '', recipientName: '', recipientPhone: '', deliveryAt: '', deliveryAddress: '', occasion: '', colorTone: '', budgetAmount: '500000', cardMessage: '', internalNote: '' };
 
@@ -37,12 +39,15 @@ export function FlowerOrdersPage() {
   const [todayDeliveries, setTodayDeliveries] = useState<FlowerOrderRecord[]>([]);
   const [form, setForm] = useState<OrderFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | undefined>();
+  const [activeDialog, setActiveDialog] = useState<FlowerOrderDialog>(null);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => { void refreshOrders(); }, []);
 
   const openOrders = useMemo(() => orders.filter((order) => !['completed', 'cancelled'].includes(order.status)), [orders]);
+  const preparingCount = useMemo(() => openOrders.filter((order) => ['confirmed', 'preparing'].includes(order.status)).length, [openOrders]);
+  const readyCount = useMemo(() => openOrders.filter((order) => ['ready', 'delivering'].includes(order.status)).length, [openOrders]);
 
   async function refreshOrders() {
     try {
@@ -54,6 +59,13 @@ export function FlowerOrdersPage() {
       console.error(caught);
       setError('Không tải được đơn hoa. Cần chạy trong Tauri runtime.');
     }
+  }
+
+  function openCreateDialog() {
+    setEditingId(undefined);
+    setForm(emptyForm);
+    setError('');
+    setActiveDialog('form');
   }
 
   async function handleSaveOrder() {
@@ -78,6 +90,7 @@ export function FlowerOrdersPage() {
       });
       setForm(emptyForm);
       setEditingId(undefined);
+      setActiveDialog(null);
       setStatus('Đã lưu đơn hoa.');
       await refreshOrders();
     } catch (caught) {
@@ -107,48 +120,73 @@ export function FlowerOrdersPage() {
       cardMessage: order.card_message ?? '',
       internalNote: order.internal_note ?? '',
     });
+    setActiveDialog('form');
   }
 
   return (
     <>
       <div className="page-title-row">
         <div><span className="eyebrow">Đơn hoa</span><h2>Đơn đặt trước & giao hoa</h2></div>
-        <Button variant="soft" onClick={refreshOrders}>Làm mới</Button>
+        <Button onClick={openCreateDialog}>Tạo đơn hoa</Button>
       </div>
 
       {(status || error) && <div className="setup-status-row">{status && <Badge tone="sage">{status}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
 
-      <div className="page-grid">
-        <SoftCard className="span-5" title={editingId ? 'Sửa đơn hoa' : 'Tạo đơn hoa'} description="Lưu tone màu, ngân sách, lời nhắn và lịch giao.">
-          <div className="setup-form-grid">
-            <TextField label="Khách hàng" value={form.customerName} onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))} />
-            <TextField label="SĐT khách" value={form.customerPhone} onChange={(event) => setForm((current) => ({ ...current, customerPhone: event.target.value }))} />
-            <TextField label="Người nhận" value={form.recipientName} onChange={(event) => setForm((current) => ({ ...current, recipientName: event.target.value }))} />
-            <TextField label="SĐT người nhận" value={form.recipientPhone} onChange={(event) => setForm((current) => ({ ...current, recipientPhone: event.target.value }))} />
-            <TextField label="Giờ giao" type="datetime-local" value={form.deliveryAt} onChange={(event) => setForm((current) => ({ ...current, deliveryAt: event.target.value }))} />
-            <TextField label="Địa chỉ giao" value={form.deliveryAddress} onChange={(event) => setForm((current) => ({ ...current, deliveryAddress: event.target.value }))} />
-            <TextField label="Dịp tặng" value={form.occasion} onChange={(event) => setForm((current) => ({ ...current, occasion: event.target.value }))} />
-            <TextField label="Tone màu" value={form.colorTone} onChange={(event) => setForm((current) => ({ ...current, colorTone: event.target.value }))} />
-            <TextField label="Ngân sách" type="number" min={0} value={form.budgetAmount} onChange={(event) => setForm((current) => ({ ...current, budgetAmount: event.target.value }))} />
-            <TextArea label="Lời nhắn thiệp" value={form.cardMessage} onChange={(event) => setForm((current) => ({ ...current, cardMessage: event.target.value }))} rows={3} />
-            <TextArea label="Ghi chú nội bộ" value={form.internalNote} onChange={(event) => setForm((current) => ({ ...current, internalNote: event.target.value }))} rows={3} />
-            <Button onClick={handleSaveOrder}>{editingId ? 'Cập nhật đơn' : 'Lưu đơn hoa'}</Button>
-          </div>
-        </SoftCard>
-
-        <SoftCard className="span-7" title="Đơn cần giao hôm nay" description="Các đơn chưa hoàn tất và có lịch giao hôm nay.">
-          <OrderList orders={todayDeliveries} onEdit={editOrder} onStatusChange={handleStatusChange} compact />
-        </SoftCard>
-
-        <SoftCard className="span-12" title="Tất cả đơn đang mở" description={`${openOrders.length} đơn chưa hoàn tất`}>
-          <OrderList orders={orders} onEdit={editOrder} onStatusChange={handleStatusChange} />
-        </SoftCard>
+      <div className="flower-order-summary-grid">
+        <FlowerOrderSummaryCard label="Đơn đang mở" value={String(openOrders.length)} detail="Chưa hoàn thành hoặc hủy" />
+        <FlowerOrderSummaryCard label="Giao hôm nay" value={String(todayDeliveries.length)} detail="Có lịch giao trong ngày" />
+        <FlowerOrderSummaryCard label="Đang chuẩn bị" value={String(preparingCount)} detail="Đã xác nhận hoặc đang cắm" />
+        <FlowerOrderSummaryCard label="Sẵn sàng giao" value={String(readyCount)} detail="Đã xong hoặc đang giao" />
       </div>
+
+      <div className="flower-order-action-grid">
+        <button className="flower-order-action-card" type="button" onClick={openCreateDialog}>
+          <span>Tạo mới</span>
+          <strong>Nhập thông tin đơn trong popup rộng</strong>
+          <p>Khách hàng, người nhận, lịch giao, ngân sách, tone màu và lời nhắn được gom vào một biểu mẫu rõ ràng.</p>
+          <b>Mở biểu mẫu →</b>
+        </button>
+        <button className="flower-order-action-card" type="button" onClick={() => setActiveDialog('today')}>
+          <span>{todayDeliveries.length} đơn hôm nay</span>
+          <strong>Danh sách cần giao hôm nay</strong>
+          <p>Xem tập trung các đơn có lịch giao trong ngày và cập nhật trạng thái ngay trong popup.</p>
+          <b>Xem lịch giao →</b>
+        </button>
+      </div>
+
+      <SoftCard className="flower-order-list-card" title="Tất cả đơn đang mở" description={`${openOrders.length} đơn chưa hoàn tất`}>
+        <OrderList orders={openOrders} onEdit={editOrder} onStatusChange={handleStatusChange} />
+      </SoftCard>
+
+      <Dialog open={activeDialog === 'form'} title={editingId ? 'Sửa đơn hoa' : 'Tạo đơn hoa'} className="flower-order-form-dialog" onClose={() => setActiveDialog(null)}>
+        <div className="flower-order-form-grid">
+          <TextField label="Khách hàng" value={form.customerName} onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))} />
+          <TextField label="SĐT khách" value={form.customerPhone} onChange={(event) => setForm((current) => ({ ...current, customerPhone: event.target.value }))} />
+          <TextField label="Người nhận" value={form.recipientName} onChange={(event) => setForm((current) => ({ ...current, recipientName: event.target.value }))} />
+          <TextField label="SĐT người nhận" value={form.recipientPhone} onChange={(event) => setForm((current) => ({ ...current, recipientPhone: event.target.value }))} />
+          <TextField label="Giờ giao" type="datetime-local" value={form.deliveryAt} onChange={(event) => setForm((current) => ({ ...current, deliveryAt: event.target.value }))} />
+          <TextField label="Địa chỉ giao" value={form.deliveryAddress} onChange={(event) => setForm((current) => ({ ...current, deliveryAddress: event.target.value }))} />
+          <TextField label="Dịp tặng" value={form.occasion} onChange={(event) => setForm((current) => ({ ...current, occasion: event.target.value }))} />
+          <TextField label="Tone màu" value={form.colorTone} onChange={(event) => setForm((current) => ({ ...current, colorTone: event.target.value }))} />
+          <TextField label="Ngân sách" type="number" min={0} value={form.budgetAmount} onChange={(event) => setForm((current) => ({ ...current, budgetAmount: event.target.value }))} />
+          <div className="flower-order-field-wide"><TextArea label="Lời nhắn thiệp" value={form.cardMessage} onChange={(event) => setForm((current) => ({ ...current, cardMessage: event.target.value }))} rows={3} /></div>
+          <div className="flower-order-field-wide"><TextArea label="Ghi chú nội bộ" value={form.internalNote} onChange={(event) => setForm((current) => ({ ...current, internalNote: event.target.value }))} rows={3} /></div>
+          <div className="flower-order-field-wide"><Button onClick={handleSaveOrder}>{editingId ? 'Cập nhật đơn' : 'Lưu đơn hoa'}</Button></div>
+        </div>
+      </Dialog>
+
+      <Dialog open={activeDialog === 'today'} title="Đơn cần giao hôm nay" className="flower-order-today-dialog" onClose={() => setActiveDialog(null)}>
+        <OrderList orders={todayDeliveries} onEdit={editOrder} onStatusChange={handleStatusChange} />
+      </Dialog>
     </>
   );
 }
 
-function OrderList({ orders, onEdit, onStatusChange, compact = false }: { orders: FlowerOrderRecord[]; onEdit: (order: FlowerOrderRecord) => void; onStatusChange: (id: string, status: FlowerOrderStatus) => void; compact?: boolean }) {
-  if (orders.length === 0) return <p className="setup-muted">Chưa có đơn.</p>;
-  return <div className={compact ? 'order-list order-list-compact' : 'order-list'}>{orders.map((order) => <div className="order-row" key={order.id}><div><strong>{order.order_code}</strong><span>{order.recipient_name ?? order.customer_name ?? 'Khách'} • {order.delivery_at ?? 'Chưa lịch giao'}</span><span>{order.color_tone ?? 'Chưa tone'} • {order.budget_amount ? formatCurrency(order.budget_amount) : 'Chưa ngân sách'}</span></div><SelectField label="Trạng thái" value={order.status} options={statusOptions} onChange={(event) => onStatusChange(order.id, event.target.value as FlowerOrderStatus)} /><Button variant="ghost" onClick={() => onEdit(order)}>Sửa</Button></div>)}</div>;
+function FlowerOrderSummaryCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return <article className="flower-order-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
+}
+
+function OrderList({ orders, onEdit, onStatusChange }: { orders: FlowerOrderRecord[]; onEdit: (order: FlowerOrderRecord) => void; onStatusChange: (id: string, status: FlowerOrderStatus) => void }) {
+  if (orders.length === 0) return <EmptyState title="Chưa có đơn" description="Tạo đơn hoa mới để bắt đầu theo dõi lịch giao." />;
+  return <div className="order-list flower-order-list">{orders.map((order) => <div className="order-row" key={order.id}><div><strong>{order.order_code}</strong><span>{order.recipient_name ?? order.customer_name ?? 'Khách'} • {order.delivery_at ?? 'Chưa lịch giao'}</span><span>{order.color_tone ?? 'Chưa tone'} • {order.budget_amount ? formatCurrency(order.budget_amount) : 'Chưa ngân sách'}</span></div><SelectField label="Trạng thái" value={order.status} options={statusOptions} onChange={(event) => onStatusChange(order.id, event.target.value as FlowerOrderStatus)} /><Button variant="ghost" onClick={() => onEdit(order)}>Sửa</Button></div>)}</div>;
 }
