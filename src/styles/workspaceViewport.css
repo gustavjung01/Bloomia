@@ -1,0 +1,77 @@
+.page-content {
+  overflow: hidden !important;
+}
+
+.page-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-workspace > .page-title-row,
+.page-workspace > .setup-status-row,
+.page-workspace > .report-folder-hint {
+  flex: 0 0 auto;
+}
+
+.page-workspace > .page-grid,
+.page-workspace > .system-preview-grid,
+.page-workspace > .pos-standard-layout,
+.page-workspace > .pos-invoice-history,
+.page-workspace > .soft-card,
+.page-workspace > .glass-card,
+.page-workspace > .legacy-system-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-workspace > .page-grid {
+  align-content: stretch;
+}
+
+.page-workspace > .page-grid > .soft-card,
+.page-workspace > .soft-card {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.page-workspace > .page-grid > .soft-card > .soft-card-header,
+.page-workspace > .soft-card > .soft-card-header {
+  background: #fff;
+  margin: -13px -13px 10px;
+  padding: 13px 13px 9px;
+  position: sticky;
+  top: -13px;
+  z-index: 5;
+}
+
+.page-content[data-route='reports'] .report-dashboard-grid {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.page-content[data-route='reports'] .report-data-card {
+  height: 100%;
+  overflow: hidden;
+}
+
+.page-content[data-route='reports'] .report-data-card .report-table {
+  height: 100%;
+  max-height: none;
+}
+
+.page-content[data-route='inventory'] .inventory-table,
+.page-content[data-route='purchase'] .purchase-line-list,
+.page-content[data-route='customers'] .setup-list-tall,
+.page-content[data-route='recipes'] .setup-list-tall,
+.page-content[data-route='flowerOrders'] .setup-list-tall {
+  max-height: calc(100vh - 240px);
+}
+
+.dialog-panel {
+  overscroll-behavior: contain;
+}
