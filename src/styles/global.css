@@ -14,12 +14,44 @@ body,
 }
 
 body {
-  min-width: 1180px;
   background: var(--gradient-page);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  min-width: 1180px;
   overflow: hidden;
+  position: relative;
+}
+
+body::before,
+body::after {
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+}
+
+body::before {
+  background-image: var(--pattern-floral), var(--pattern-floral);
+  background-position: 32px 24px, 150px 128px;
+  background-size: 236px 236px, 318px 318px;
+  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.72), transparent 68%);
+  opacity: 0.36;
+  z-index: 0;
+}
+
+body::after {
+  background: radial-gradient(circle at 8% 92%, rgba(217, 95, 141, 0.14), transparent 24%),
+    radial-gradient(circle at 96% 78%, rgba(139, 111, 192, 0.14), transparent 30%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28), transparent 28%, rgba(255, 255, 255, 0.22));
+  opacity: 0.9;
+  z-index: 0;
+}
+
+#root {
+  isolation: isolate;
+  position: relative;
+  z-index: 1;
 }
 
 button,
@@ -53,8 +85,8 @@ p {
 .page-title-row {
   align-items: center;
   display: flex;
-  justify-content: space-between;
   gap: var(--space-4);
+  justify-content: space-between;
   margin-bottom: var(--space-5);
 }
 
