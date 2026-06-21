@@ -20,6 +20,7 @@ import {
 import { listLocalPrinters, testPrint } from '../../services/printing/printerService';
 import { buildVietQrSnapshot, validatePaymentQrSettings } from '../../services/payment/vietQrService';
 import { formatCurrency } from '../../utils/format';
+import { VietnamBankPicker } from './VietnamBankPicker';
 
 const paperOptions = [
   { label: '58 mm', value: '58mm' },
@@ -181,13 +182,24 @@ export function DevicePaymentSettingsPanel() {
           </div>
         </SoftCard>
 
-        <SoftCard className="span-6" title="Tài khoản nhận chuyển khoản" description="Thông tin công khai để tạo VietQR theo đúng số tiền thực của hóa đơn.">
+        <SoftCard className="span-6" title="Tài khoản nhận chuyển khoản" description="Chọn ngân hàng Việt Nam để Bloomia tự đồng bộ tên, BIN và mã VietQR.">
           <div className="setup-form-grid">
             <label className="setup-checkbox"><input type="checkbox" checked={settings.qrEnabled} onChange={(event) => setSettings((current) => ({ ...current, qrEnabled: event.target.checked }))} />Bật thanh toán bằng VietQR</label>
-            <div className="page-grid">
-              <div className="span-6"><TextField label="Tên ngân hàng" value={settings.bankName} placeholder="Ví dụ: Vietcombank" onChange={(event) => setSettings((current) => ({ ...current, bankName: event.target.value }))} /></div>
-              <div className="span-3"><TextField label="Mã BIN" value={settings.bankBin} placeholder="970436" onChange={(event) => setSettings((current) => ({ ...current, bankBin: event.target.value }))} /></div>
-              <div className="span-3"><TextField label="Mã ngân hàng" value={settings.bankCode} placeholder="VCB" onChange={(event) => setSettings((current) => ({ ...current, bankCode: event.target.value }))} /></div>
+            <VietnamBankPicker
+              bankName={settings.bankName}
+              bankCode={settings.bankCode}
+              bankBin={settings.bankBin}
+              onSelect={(bank) => setSettings((current) => ({
+                ...current,
+                bankName: bank.shortName,
+                bankCode: bank.code,
+                bankBin: bank.bin,
+              }))}
+            />
+            <div className="page-grid bank-auto-fields">
+              <div className="span-6"><TextField label="Tên ngân hàng" value={settings.bankName} readOnly /></div>
+              <div className="span-3"><TextField label="Mã BIN" value={settings.bankBin} readOnly /></div>
+              <div className="span-3"><TextField label="Mã ngân hàng" value={settings.bankCode} readOnly /></div>
             </div>
             <TextField label="Số tài khoản" value={settings.accountNumber} onChange={(event) => setSettings((current) => ({ ...current, accountNumber: event.target.value }))} />
             <TextField label="Tên chủ tài khoản" value={settings.accountName} onChange={(event) => setSettings((current) => ({ ...current, accountName: event.target.value.toUpperCase() }))} />
@@ -210,7 +222,7 @@ export function DevicePaymentSettingsPanel() {
               </div>
             </div>
             <div className="payment-qr-preview">
-              {preview ? <img src={preview.imageUrl} alt="VietQR kiểm tra" /> : <p className="setup-muted">Bật VietQR và nhập mã ngân hàng, số tài khoản để xem trước.</p>}
+              {preview ? <img src={preview.imageUrl} alt="VietQR kiểm tra" /> : <p className="setup-muted">Bật VietQR và chọn ngân hàng, nhập số tài khoản để xem trước.</p>}
             </div>
           </div>
           <div className="setup-row-actions" style={{ marginTop: 16 }}><Button onClick={handleSave}>Lưu thiết bị & thanh toán</Button></div>
