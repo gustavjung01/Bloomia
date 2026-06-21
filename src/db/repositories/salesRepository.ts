@@ -81,6 +81,11 @@ export interface HydratedSale {
   payments: PaymentRecord[];
 }
 
+interface SaleMovementCleanupRecord {
+  batch_id: string | null;
+  quantity_out: number;
+}
+
 const saleListSelect = `SELECT
   sales.*,
   customers.name AS customer_name,
@@ -99,7 +104,6 @@ export async function createSale(input: CreateSaleInput) {
   const returnedAmount = Math.max(0, Math.round(input.returnedAmount));
   const paymentStatus = paidAmount >= input.total ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
 
-  await db.execute('BEGIN IMMEDIATE TRANSACTION');
   try {
     const selectedCustomerId = cleanOptional(input.customerId);
     const customerId = selectedCustomerId ?? await createCustomerIfNeeded(input.customerName, input.customerPhone);
@@ -121,9 +125,12 @@ export async function createSale(input: CreateSaleInput) {
       'INSERT INTO payments (id, sale_id, method, amount, received_amount, returned_amount, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [createLocalId('payment'), saleId, input.paymentMethod, paidAmount, receivedAmount, returnedAmount, null],
     );
-    await db.execute('COMMIT');
   } catch (error) {
-    await db.execute('ROLLBACK');
+    try {
+      await cleanupFailedSale(saleId);
+    } catch (cleanupError) {
+      console.error('Bloomia could not fully clean up a failed sale save.', cleanupError);
+    }
     throw error;
   }
 
@@ -188,6 +195,29 @@ export async function searchSales(query: string, limit = 80) {
      LIMIT ?`,
     [pattern, pattern, pattern, limit],
   );
+}
+
+async function cleanupFailedSale(saleId: string) {
+  const db = await getDatabase();
+  const movements = await db.select<SaleMovementCleanupRecord>(
+    `SELECT batch_id, quantity_out
+     FROM stock_movements
+     WHERE reference_type = 'sale' AND reference_id = ?`,
+    [saleId],
+  );
+
+  for (const movement of movements) {
+    if (!movement.batch_id || movement.quantity_out <= 0) continue;
+    await db.execute(
+      'UPDATE purchase_batches SET remaining_quantity = remaining_quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [movement.quantity_out, movement.batch_id],
+    );
+  }
+
+  await db.execute("DELETE FROM stock_movements WHERE reference_type = 'sale' AND reference_id = ?", [saleId]);
+  await db.execute('DELETE FROM payments WHERE sale_id = ?', [saleId]);
+  await db.execute('DELETE FROM sale_items WHERE sale_id = ?', [saleId]);
+  await db.execute('DELETE FROM sales WHERE id = ?', [saleId]);
 }
 
 async function allocateLineCost(line: SaleLineDraft, saleId: string) {
