@@ -34,7 +34,21 @@ export function App() {
 
   return (
     <AppLayout activeRoute={activeRoute} onRouteChange={setActiveRoute} routeTitle={route.label} databaseStatus={databaseStatus}>
-      <Page />
+      {databaseStatus === 'ready' && <Page />}
+      {databaseStatus === 'idle' && (
+        <div className="glass-card">
+          <span className="eyebrow">Đang chuẩn bị dữ liệu</span>
+          <h2>Bloomia đang kiểm tra SQLite local</h2>
+          <p className="setup-muted">App đang chạy migration và seed cấu hình mặc định trước khi mở màn hình thao tác.</p>
+        </div>
+      )}
+      {databaseStatus === 'error' && (
+        <div className="glass-card">
+          <span className="eyebrow">Lỗi dữ liệu</span>
+          <h2>Không khởi tạo được SQLite local</h2>
+          <p className="setup-muted">Hãy đóng app, mở lại. Nếu vẫn lỗi, vào System tab sau khi sửa runtime để kiểm tra AppData và file bloomia.db.</p>
+        </div>
+      )}
     </AppLayout>
   );
 }
