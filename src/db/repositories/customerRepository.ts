@@ -37,7 +37,9 @@ export async function listCustomers() {
        customers.created_at,
        customers.updated_at
      FROM customers
-     LEFT JOIN sales ON sales.customer_id = customers.id
+     LEFT JOIN sales
+       ON sales.customer_id = customers.id
+      AND COALESCE(sales.sale_status, 'completed') = 'completed'
      GROUP BY customers.id
      ORDER BY customers.updated_at DESC, customers.created_at DESC`,
   );
