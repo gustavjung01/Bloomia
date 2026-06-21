@@ -1,6 +1,8 @@
 @import './settings.css';
 @import './pos.css';
 @import './inventory.css';
+@import './devicePanel.css';
+@import './systemDiagnostics.css';
 
 * {
   box-sizing: border-box;
