@@ -6,7 +6,21 @@ export interface BloomiaAppStatus {
   media_dir: string;
   backup_dir: string;
   database_exists: boolean;
+  database_size_bytes: number;
   pending_restore_exists: boolean;
+  app_version: string;
+}
+
+export interface BloomiaUserPaths {
+  documents_dir: string;
+  bloomia_dir: string;
+  exports_dir: string;
+  reports_dir: string;
+  invoices_dir: string;
+  orders_dir: string;
+  inventory_dir: string;
+  user_backups_dir: string;
+  imports_dir: string;
 }
 
 export interface MediaSaveResult {
@@ -16,12 +30,43 @@ export interface MediaSaveResult {
   size_bytes: number;
 }
 
-export async function getBloomiaAppStatus() {
-  return invoke<BloomiaAppStatus>('get_bloomia_app_status');
+let appStatusPromise: Promise<BloomiaAppStatus> | null = null;
+let userPathsPromise: Promise<BloomiaUserPaths> | null = null;
+
+export async function getBloomiaAppStatus(forceRefresh = false) {
+  if (forceRefresh || !appStatusPromise) {
+    appStatusPromise = invoke<BloomiaAppStatus>('get_bloomia_app_status').catch((error) => {
+      appStatusPromise = null;
+      throw error;
+    });
+  }
+  return appStatusPromise;
+}
+
+export async function getBloomiaUserPaths(forceRefresh = false) {
+  if (forceRefresh || !userPathsPromise) {
+    userPathsPromise = invoke<BloomiaUserPaths>('get_bloomia_user_paths').catch((error) => {
+      userPathsPromise = null;
+      throw error;
+    });
+  }
+  return userPathsPromise;
 }
 
 export async function backupBloomiaDatabase() {
   return invoke<string>('backup_bloomia_database');
+}
+
+export async function openBloomiaAppDataDir() {
+  return invoke<void>('open_bloomia_app_data_dir');
+}
+
+export async function openBloomiaKnownDir(kind: 'app_data' | 'media' | 'backup' | 'documents' | 'bloomia' | 'exports' | 'reports' | 'invoices' | 'orders' | 'inventory' | 'user_backups' | 'imports') {
+  return invoke<void>('open_bloomia_known_dir', { kind });
+}
+
+export async function exportTextFileWithDialog(fileName: string, contents: string, category: 'reports' | 'invoices' | 'orders' | 'inventory' | 'exports' = 'exports') {
+  return invoke<string | null>('export_text_file_with_dialog', { fileName, contents, category });
 }
 
 export async function listBloomiaBackups() {

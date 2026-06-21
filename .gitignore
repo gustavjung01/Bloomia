@@ -38,3 +38,6 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Cloudflare Wrangler local state
+/.wrangler/

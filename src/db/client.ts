@@ -8,12 +8,19 @@ let databasePromise: Promise<QueryableDatabase> | null = null;
 
 export async function getDatabase(): Promise<QueryableDatabase> {
   if (!databasePromise) {
-    databasePromise = Database.load(DATABASE_URL) as Promise<QueryableDatabase>;
+    databasePromise = (Database.load(DATABASE_URL) as Promise<QueryableDatabase>).catch((error) => {
+      databasePromise = null;
+      throw error;
+    });
   }
 
   return databasePromise;
 }
 
-export function resetDatabaseClientForTests() {
+export function resetDatabaseClient() {
   databasePromise = null;
+}
+
+export function resetDatabaseClientForTests() {
+  resetDatabaseClient();
 }

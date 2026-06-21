@@ -1,7 +1,7 @@
-import type { QueryableDatabase, SeedItem } from './schema';
+import type { QueryableDatabase } from './schema';
 
-const categories = ['Hoa tươi', 'Lá phụ', 'Phụ liệu', 'Bao bì', 'Dịch vụ', 'Sản phẩm mẫu'];
-const units = [
+const defaultCategories = ['Hoa tươi', 'Lá phụ', 'Phụ liệu', 'Bao bì', 'Dịch vụ', 'Sản phẩm mẫu'];
+const defaultUnits = [
   { id: 'unit-stem', name: 'Cành', symbol: 'cành' },
   { id: 'unit-bunch', name: 'Bó', symbol: 'bó' },
   { id: 'unit-sheet', name: 'Tờ', symbol: 'tờ' },
@@ -10,53 +10,51 @@ const units = [
   { id: 'unit-trip', name: 'Chuyến', symbol: 'chuyến' },
 ];
 
-const items: SeedItem[] = [
-  { name: 'Hoa hồng pastel', type: 'flower', unit: 'unit-stem', category: 'Hoa tươi', defaultSalePrice: 18000, isStockTracked: true },
-  { name: 'Baby trắng', type: 'flower', unit: 'unit-bunch', category: 'Hoa tươi', defaultSalePrice: 65000, isStockTracked: true },
-  { name: 'Lá bạc hà', type: 'material', unit: 'unit-stem', category: 'Lá phụ', defaultSalePrice: 6000, isStockTracked: true },
-  { name: 'Giấy gói Hàn Quốc', type: 'material', unit: 'unit-sheet', category: 'Bao bì', defaultSalePrice: 8000, isStockTracked: true },
-  { name: 'Ruy băng', type: 'material', unit: 'unit-piece', category: 'Phụ liệu', defaultSalePrice: 5000, isStockTracked: true },
-  { name: 'Công cắm hoa', type: 'service', unit: 'unit-service', category: 'Dịch vụ', defaultSalePrice: 50000, isStockTracked: false },
-  { name: 'Phí giao hàng', type: 'service', unit: 'unit-trip', category: 'Dịch vụ', defaultSalePrice: 30000, isStockTracked: false },
-  { name: 'Thiệp chúc mừng', type: 'service', unit: 'unit-piece', category: 'Dịch vụ', defaultSalePrice: 10000, isStockTracked: false },
-];
-
-export async function seedDevelopmentData(db: QueryableDatabase) {
+export async function seedProductionDefaults(db: QueryableDatabase) {
   await db.execute(
     `INSERT OR IGNORE INTO shops (id, name, phone, address, invoice_footer)
-     VALUES ('shop-default', 'Bloomia Florist', '09xx xxx xxx', 'Địa chỉ shop', 'Cảm ơn quý khách đã ghé Bloomia.')`,
+     VALUES ('shop-default', 'Tên shop của bạn', NULL, NULL, 'Cảm ơn quý khách.')`,
   );
 
   await db.execute(`INSERT OR IGNORE INTO users (id, name, role) VALUES ('user-owner', 'Chủ tiệm', 'owner')`);
 
-  for (const category of categories) {
+  for (const category of defaultCategories) {
     await db.execute('INSERT OR IGNORE INTO item_categories (id, name) VALUES (?, ?)', [slugId('cat', category), category]);
   }
 
-  for (const unit of units) {
+  for (const unit of defaultUnits) {
     await db.execute('INSERT OR IGNORE INTO units (id, name, symbol) VALUES (?, ?, ?)', [unit.id, unit.name, unit.symbol]);
   }
 
-  await db.execute(`INSERT OR IGNORE INTO suppliers (id, name, phone, note) VALUES ('supplier-hoky', 'Chợ hoa Hồ Thị Kỷ', '', 'Seed data')`);
+  await db.execute(`INSERT OR IGNORE INTO printer_settings (id, paper_size, is_default) VALUES ('printer-default', '80mm', 1)`);
+  await seedFirstRunSamples(db);
+}
 
-  for (const item of items) {
+async function seedFirstRunSamples(db: QueryableDatabase) {
+  const itemRows = await db.select<{ count: number }>('SELECT COUNT(*) AS count FROM items');
+  if (Number(itemRows[0]?.count ?? 0) === 0) {
     await db.execute(
-      `INSERT OR IGNORE INTO items (
-        id, name, item_type, category_id, unit_id, default_sale_price, is_stock_tracked
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        slugId('item', item.name),
-        item.name,
-        item.type,
-        slugId('cat', item.category),
-        item.unit,
-        item.defaultSalePrice,
-        item.isStockTracked ? 1 : 0,
-      ],
+      `INSERT OR IGNORE INTO items
+       (id, name, sku, item_type, category_id, unit_id, default_sale_price, default_purchase_price, is_stock_tracked, is_active, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ['item-sample-pastel-bouquet', 'Bó hoa pastel (Mẫu)', 'SAMPLE-BOUQUET', 'product', 'cat-san-pham-mau', 'unit-piece', 450000, 250000, 0, 'Dữ liệu mẫu để test POS. Có thể sửa hoặc xóa.'],
+    );
+
+    await db.execute(
+      `INSERT OR IGNORE INTO items
+       (id, name, sku, item_type, category_id, unit_id, default_sale_price, default_purchase_price, is_stock_tracked, is_active, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ['item-sample-delivery', 'Phí giao hoa nội thành (Mẫu)', 'SAMPLE-DELIVERY', 'service', 'cat-dich-vu', 'unit-trip', 30000, 0, 0, 'Dữ liệu mẫu để test hóa đơn và thanh toán.'],
     );
   }
 
-  await db.execute(`INSERT OR IGNORE INTO printer_settings (id, paper_size, is_default) VALUES ('printer-default', '80mm', 1)`);
+  const customerRows = await db.select<{ count: number }>('SELECT COUNT(*) AS count FROM customers');
+  if (Number(customerRows[0]?.count ?? 0) === 0) {
+    await db.execute(
+      `INSERT OR IGNORE INTO customers (id, name, phone, address, note)
+       VALUES ('customer-sample', 'Khách hàng mẫu', NULL, NULL, 'Dữ liệu mẫu để test chọn khách trong POS. Có thể sửa hoặc xóa.')`,
+    );
+  }
 }
 
 function slugId(prefix: string, value: string) {

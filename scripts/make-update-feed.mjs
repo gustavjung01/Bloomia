@@ -13,11 +13,15 @@ const bundleDir = resolve('src-tauri', 'target', 'release', 'bundle', 'nsis');
 const outDir = resolve('release');
 mkdirSync(outDir, { recursive: true });
 
+const exePath = findFirst(bundleDir, '.exe');
 const zipPath = findFirst(bundleDir, '.zip');
 const sigPath = `${zipPath}.sig`;
+if (!existsSync(exePath)) throw new Error(`Missing installer file: ${exePath}`);
 if (!existsSync(sigPath)) throw new Error(`Missing signature file: ${sigPath}`);
 
+const exeName = basename(exePath);
 const zipName = basename(zipPath);
+const sigName = basename(sigPath);
 const manifest = {
   version,
   notes,
@@ -31,7 +35,15 @@ const manifest = {
 };
 
 writeFileSync(join(outDir, 'latest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-writeFileSync(join(outDir, 'upload-plan.txt'), [`${zipPath} -> ${baseUrl}/${target}/${zipName}`, `${join(outDir, 'latest.json')} -> ${baseUrl}/latest.json`].join('\n'));
+writeFileSync(
+  join(outDir, 'upload-plan.txt'),
+  [
+    `upload ${exePath} -> ${baseUrl}/downloads/${exeName}`,
+    `upload ${zipPath} -> ${baseUrl}/${target}/${zipName}`,
+    `upload ${sigPath} -> ${baseUrl}/${target}/${sigName}`,
+    `upload ${join(outDir, 'latest.json')} -> ${baseUrl}/latest.json`,
+  ].join('\n'),
+);
 console.log('Update feed generated at release/latest.json');
 
 function findFirst(dir, suffix) {

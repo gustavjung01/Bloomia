@@ -35,6 +35,7 @@ export interface ItemRecord {
   unit_id: string | null;
   unit_symbol: string | null;
   default_sale_price: number;
+  default_purchase_price: number;
   is_stock_tracked: number;
   is_active: number;
   note: string | null;
@@ -77,6 +78,7 @@ export interface SaveItemInput {
   categoryId?: string;
   unitId?: string;
   defaultSalePrice: number;
+  defaultPurchasePrice: number;
   isStockTracked: boolean;
   note?: string;
 }
@@ -213,6 +215,7 @@ export async function listItems(includeInactive = false) {
        items.unit_id,
        units.symbol AS unit_symbol,
        items.default_sale_price,
+       items.default_purchase_price,
        items.is_stock_tracked,
        items.is_active,
        items.note
@@ -228,12 +231,13 @@ export async function saveItem(input: SaveItemInput) {
   const db = await getDatabase();
   const id = input.id ?? createLocalId('item');
   const isStockTracked = input.itemType === 'service' ? 0 : input.isStockTracked ? 1 : 0;
+  const defaultPurchasePrice = normalizeMoney(input.defaultPurchasePrice);
 
   if (input.id) {
     await db.execute(
       `UPDATE items
        SET name = ?, sku = ?, item_type = ?, category_id = ?, unit_id = ?, default_sale_price = ?,
-           is_stock_tracked = ?, note = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
+           default_purchase_price = ?, is_stock_tracked = ?, note = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
         input.name.trim(),
@@ -242,6 +246,7 @@ export async function saveItem(input: SaveItemInput) {
         cleanOptional(input.categoryId),
         cleanOptional(input.unitId),
         input.defaultSalePrice,
+        defaultPurchasePrice,
         isStockTracked,
         cleanOptional(input.note),
         id,
@@ -250,8 +255,8 @@ export async function saveItem(input: SaveItemInput) {
   } else {
     await db.execute(
       `INSERT INTO items (
-        id, name, sku, item_type, category_id, unit_id, default_sale_price, is_stock_tracked, note, is_active
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        id, name, sku, item_type, category_id, unit_id, default_sale_price, default_purchase_price, is_stock_tracked, note, is_active
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
         id,
         input.name.trim(),
@@ -260,6 +265,7 @@ export async function saveItem(input: SaveItemInput) {
         cleanOptional(input.categoryId),
         cleanOptional(input.unitId),
         input.defaultSalePrice,
+        defaultPurchasePrice,
         isStockTracked,
         cleanOptional(input.note),
       ],
@@ -307,6 +313,13 @@ export async function saveShopSettings(input: SaveShopSettingsInput) {
   }
 
   return id;
+}
+
+function normalizeMoney(value: number) {
+  if (!Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return Math.round(value);
 }
 
 function cleanOptional(value?: string | null) {

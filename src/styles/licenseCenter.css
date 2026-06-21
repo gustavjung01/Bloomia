@@ -1,0 +1,19 @@
+body.bloomia-license-mode { min-width: 0; overflow: hidden; }
+body.bloomia-license-mode #root { min-width: 0; overflow: hidden; width: 100vw; }
+body.bloomia-license-mode .license-shell { height: 100vh; min-height: 0; overflow: hidden; padding: 18px; width: 100vw; }
+body.bloomia-license-mode .license-card { margin: 0 auto; max-height: calc(100vh - 36px); max-width: 540px; min-height: 0; overflow: hidden; padding: 26px 30px 21px; width: min(540px, calc(100vw - 36px)); }
+body.bloomia-license-mode .license-heading { grid-template-columns: 62px minmax(0, 1fr); }
+body.bloomia-license-mode .license-logo-wrap { height: 62px; width: 62px; }
+body.bloomia-license-mode .license-logo-wrap img { height: 53px; width: 53px; }
+body.bloomia-license-mode .license-heading h1 { font-size: clamp(23px, 4.2vw, 29px); line-height: 1.12; overflow-wrap: anywhere; white-space: normal; }
+body.bloomia-license-mode .license-intro { margin: 17px auto 16px; max-width: 460px; text-align: center; }
+body.bloomia-license-mode .license-form { margin: 0 auto; max-width: 455px; width: 100%; }
+body.bloomia-license-mode .license-form > label { text-align: center; }
+body.bloomia-license-mode .license-input-wrap { margin: 0 auto; max-width: 455px; width: 100%; }
+body.bloomia-license-mode .license-input-wrap input { text-align: center; }
+body.bloomia-license-mode .license-device-card { margin: 0 auto; max-width: 455px; width: 100%; }
+body.bloomia-license-mode .license-binding-note { margin: 0 auto; max-width: 445px; text-align: center; }
+body.bloomia-license-mode .license-submit { margin: 1px auto 0; max-width: 455px; width: 100%; }
+body.bloomia-license-mode .license-footer { margin-top: 14px; }
+.license-offline-notice { background: #fff8e8; border: 1px solid #ead8a6; border-radius: 10px; color: #775f24; font-size: 11px; margin-bottom: 10px; padding: 9px 12px; }
+.startup-update-notice { align-items: center; background: #fffaf0; border: 1px solid #ead8aa; border-radius: 10px; color: #765b1d; display: flex; font-size: 11px; font-weight: 700; gap: 8px; margin-bottom: 10px; padding: 9px 12px; text-align: left; width: 100%; }

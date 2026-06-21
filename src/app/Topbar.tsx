@@ -36,7 +36,7 @@ export function Topbar({ title, databaseStatus }: TopbarProps) {
   return (
     <>
       <header className="topbar">
-        <div>
+        <div className="topbar-title">
           <span className="eyebrow">Bloomia Desktop</span>
           <h1>{title}</h1>
         </div>

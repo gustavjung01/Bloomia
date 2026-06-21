@@ -1,0 +1,279 @@
+.sidebar {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(196, 92, 130, 0.16), transparent 24%),
+    radial-gradient(circle at 86% 82%, rgba(117, 96, 143, 0.11), transparent 30%),
+    #242126;
+  isolation: isolate;
+  position: relative;
+}
+
+.sidebar::before,
+.sidebar::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
+  z-index: 0;
+}
+
+/* Decorative assets are intentionally text-free. All labels stay live in React. */
+.sidebar::before {
+  background:
+    url('../assets/botanical-corner.svg') right 24% / 126px auto no-repeat,
+    url('../assets/botanical-corner.svg') left 78% / 108px auto no-repeat;
+  filter: saturate(0.72) brightness(0.86);
+  inset: 0;
+  opacity: 0.095;
+}
+
+.sidebar::after {
+  background:
+    radial-gradient(circle at 22% 15%, rgba(232, 182, 201, 0.11), transparent 18%),
+    radial-gradient(circle at 74% 90%, rgba(211, 172, 88, 0.08), transparent 16%);
+  inset: 0;
+}
+
+.sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-card {
+  align-items: center;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  margin-bottom: 14px;
+  min-height: 64px;
+  overflow: hidden;
+  padding: 6px 8px 12px 6px;
+  position: relative;
+}
+
+.brand-card::before {
+  background: url('../assets/botanical-corner.svg') center / contain no-repeat;
+  content: '';
+  height: 82px;
+  opacity: 0.19;
+  pointer-events: none;
+  position: absolute;
+  right: -26px;
+  top: -18px;
+  width: 72px;
+}
+
+.brand-card::after {
+  background: linear-gradient(90deg, rgba(211, 172, 88, 0.52), rgba(211, 172, 88, 0.08), transparent);
+  bottom: 3px;
+  content: '';
+  height: 1px;
+  left: 60px;
+  position: absolute;
+  right: 24px;
+}
+
+.brand-mark {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.26), transparent 28%),
+    linear-gradient(145deg, #c95b83, #97395d);
+  border: 1px solid rgba(255, 235, 241, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(133, 48, 82, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  color: #f9e9ee;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 700;
+  height: 44px;
+  letter-spacing: -0.06em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  width: 44px;
+}
+
+.brand-card > div:last-child {
+  min-width: 0;
+}
+
+.brand-card strong {
+  color: #f0c8d4;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-shadow: 0 1px 12px rgba(229, 151, 181, 0.14);
+}
+
+.brand-card span {
+  color: #dcc6ae;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  margin-top: 4px;
+}
+
+.nav-list {
+  gap: 5px;
+}
+
+.nav-item {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.nav-item::before,
+.nav-item::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.nav-item::before {
+  background: radial-gradient(circle, rgba(232, 182, 201, 0.16), transparent 68%);
+  height: 72px;
+  opacity: 0;
+  right: -22px;
+  top: -20px;
+  transition: opacity 140ms ease;
+  width: 72px;
+}
+
+.nav-item::after {
+  background: url('../assets/botanical-corner.svg') center / contain no-repeat;
+  bottom: -28px;
+  filter: saturate(0.7) brightness(0.88);
+  height: 82px;
+  opacity: 0;
+  right: -24px;
+  transform: rotate(18deg);
+  transition: opacity 140ms ease;
+  width: 72px;
+}
+
+.nav-item:hover::before {
+  opacity: 0.48;
+}
+
+.nav-item.is-active::before {
+  opacity: 0.7;
+}
+
+.nav-item.is-active::after {
+  opacity: 0.11;
+}
+
+.nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-item.is-active {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.075)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.nav-item.is-active::marker {
+  color: transparent;
+}
+
+.nav-item.is-active .nav-icon {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18), transparent 40%),
+    rgba(255, 255, 255, 0.1);
+  color: #fff1f5;
+}
+
+.sidebar-quote {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  border: 1px solid rgba(232, 182, 201, 0.12);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  min-height: 74px;
+  overflow: hidden;
+  padding: 13px 12px;
+  position: relative;
+}
+
+.sidebar-quote::before,
+.sidebar-quote::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+}
+
+.sidebar-quote::before {
+  background:
+    url('../assets/botanical-corner.svg') right bottom / 92px auto no-repeat,
+    url('../assets/botanical-corner.svg') left top / 58px auto no-repeat;
+  inset: 0;
+  opacity: 0.16;
+}
+
+.sidebar-quote::after {
+  background: linear-gradient(90deg, rgba(211, 172, 88, 0.65), transparent);
+  bottom: 10px;
+  height: 1px;
+  left: 38px;
+  width: 84px;
+}
+
+.sidebar-quote > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-quote span {
+  color: #df789d;
+  font-size: 15px;
+}
+
+.sidebar-quote p {
+  color: #e8d8cf;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* Card-level botanical watermark so artwork remains visible above the page background. */
+.page-content .soft-card {
+  isolation: isolate;
+}
+
+.page-content .soft-card::after {
+  background:
+    radial-gradient(circle at 72% 32%, rgba(223, 142, 170, 0.12), transparent 36%),
+    url('../assets/botanical-corner.svg') right bottom / 96px auto no-repeat;
+  border-radius: 0;
+  bottom: -22px;
+  filter: saturate(0.74);
+  height: 116px;
+  opacity: 0.065;
+  right: -24px;
+  top: auto;
+  width: 122px;
+}
+
+.page-content[data-route='dashboard'] .soft-card::after,
+.page-content[data-route='sales'] .soft-card::after,
+.page-content[data-route='flowerOrders'] .soft-card::after {
+  opacity: 0.085;
+}
+
+.page-content[data-route='inventory'] .soft-card::after,
+.page-content[data-route='purchase'] .soft-card::after,
+.page-content[data-route='customers'] .soft-card::after,
+.page-content[data-route='recipes'] .soft-card::after {
+  opacity: 0.06;
+}
+
+.page-content[data-route='reports'] .soft-card::after,
+.page-content[data-route='settings'] .soft-card::after,
+.page-content[data-route='system'] .soft-card::after,
+.page-content[data-route='update'] .soft-card::after {
+  opacity: 0.025;
+}

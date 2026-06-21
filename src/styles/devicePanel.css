@@ -1,0 +1,311 @@
+.device-payment-preview {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  max-width: 100%;
+}
+
+.payment-qr-preview {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--space-4);
+}
+
+.payment-qr-preview img {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(91, 74, 88, 0.12);
+  max-height: 300px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.pos-bank-transfer-card {
+  background: rgba(244, 240, 255, 0.9);
+  border: 1px solid rgba(139, 111, 192, 0.22);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.pos-bank-transfer-card img {
+  background: white;
+  border-radius: 14px;
+  justify-self: center;
+  max-height: 230px;
+  object-fit: contain;
+  width: min(100%, 230px);
+}
+
+.pos-bank-transfer-meta {
+  display: grid;
+  gap: 5px;
+  text-align: center;
+}
+
+.pos-bank-transfer-meta strong,
+.pos-bank-transfer-meta span {
+  overflow-wrap: anywhere;
+}
+
+.pos-bank-transfer-meta span {
+  color: var(--color-ink-500);
+  font-size: 12px;
+}
+
+.pos-transfer-confirm {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(95, 143, 114, 0.28);
+}
+
+.bank-picker {
+  display: grid;
+  gap: 7px;
+  max-width: 100%;
+  position: relative;
+  z-index: 8;
+}
+
+.bank-picker > label {
+  color: var(--color-ink-700);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bank-picker-control {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(184, 174, 186, 0.3);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  min-height: 48px;
+  padding: 6px 8px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.bank-picker-control:focus-within,
+.bank-picker-control.is-open {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(217, 95, 141, 0.58);
+  box-shadow: 0 0 0 3px rgba(217, 95, 141, 0.1);
+}
+
+.bank-picker-control > img,
+.bank-picker-monogram {
+  align-items: center;
+  background: white;
+  border: 1px solid rgba(184, 174, 186, 0.18);
+  border-radius: 10px;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  object-fit: contain;
+  padding: 4px;
+  width: 34px;
+}
+
+.bank-picker-monogram {
+  color: var(--color-blush-500);
+  font-weight: 900;
+}
+
+.bank-picker-control input {
+  background: transparent;
+  border: 0;
+  color: var(--color-ink-900);
+  min-width: 0;
+  outline: 0;
+  padding: 7px 0;
+  width: 100%;
+}
+
+.bank-picker-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-ink-500);
+  display: flex;
+  font-size: 20px;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.bank-picker-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(184, 174, 186, 0.26);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 22px 55px rgba(91, 74, 88, 0.2);
+  left: 0;
+  max-height: min(58vh, 520px);
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% - 1px);
+  z-index: 30;
+}
+
+.bank-picker-menu-header {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(255, 241, 245, 0.92), rgba(244, 240, 255, 0.9));
+  border-bottom: 1px solid rgba(184, 174, 186, 0.18);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.bank-picker-menu-header span {
+  color: var(--color-ink-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bank-picker-menu-header button {
+  background: transparent;
+  border: 0;
+  color: var(--color-blush-500);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0;
+}
+
+.bank-picker-options {
+  display: grid;
+  max-height: min(48vh, 430px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+}
+
+.bank-picker-options > p {
+  color: var(--color-ink-500);
+  padding: 20px 12px;
+  text-align: center;
+}
+
+.bank-picker-option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-ink-900);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 9px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.bank-picker-option:hover:not(:disabled),
+.bank-picker-option.is-selected {
+  background: linear-gradient(90deg, rgba(255, 241, 245, 0.82), rgba(244, 240, 255, 0.68));
+}
+
+.bank-picker-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.bank-picker-logo {
+  align-items: center;
+  background: white;
+  border: 1px solid rgba(184, 174, 186, 0.18);
+  border-radius: 11px;
+  display: flex;
+  font-size: 11px;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 4px;
+  width: 42px;
+}
+
+.bank-picker-logo img {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.bank-picker-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bank-picker-copy strong,
+.bank-picker-copy span,
+.bank-picker-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bank-picker-copy strong {
+  font-size: 13px;
+}
+
+.bank-picker-copy span {
+  color: var(--color-ink-500);
+  font-size: 11px;
+}
+
+.bank-picker-copy small {
+  color: var(--color-lavender-500);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.bank-picker-support {
+  border-radius: 999px;
+  color: var(--color-ink-500);
+  font-size: 10px;
+  font-weight: 800;
+  max-width: 112px;
+  padding: 5px 8px;
+  text-align: center;
+}
+
+.bank-picker-support.is-supported {
+  background: var(--color-sage-100);
+  color: var(--color-sage-500);
+}
+
+.bank-picker-meta {
+  color: var(--color-ink-500);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 5px 12px;
+  justify-content: space-between;
+}
+
+.bank-picker-error {
+  color: var(--color-blush-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bank-auto-fields input[readonly] {
+  background: rgba(244, 240, 255, 0.52);
+  color: var(--color-ink-700);
+  cursor: default;
+}
+
+@media (max-width: 1260px) {
+  .device-payment-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

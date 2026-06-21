@@ -3,5 +3,15 @@
   "identifier": "default",
   "description": "Default desktop capability for Bloomia",
   "windows": ["main"],
-  "permissions": ["core:default", "sql:default", "updater:default"]
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "sql:default",
+    "sql:allow-execute",
+    "updater:default"
+  ]
 }

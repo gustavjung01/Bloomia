@@ -1,6 +1,8 @@
 @import './settings.css';
 @import './pos.css';
 @import './inventory.css';
+@import './devicePanel.css';
+@import './systemDiagnostics.css';
 
 * {
   box-sizing: border-box;
@@ -14,12 +16,123 @@ body,
 }
 
 body {
-  min-width: 1180px;
   background: var(--gradient-page);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  min-width: 1180px;
   overflow: hidden;
+  position: relative;
+}
+
+body::before,
+body::after {
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+}
+
+body::before {
+  background-image:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.72) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 76% 62%, rgba(217, 95, 141, 0.1) 0 1px, transparent 1.5px);
+  background-position: 0 0, 18px 22px;
+  background-size: 42px 42px, 56px 56px;
+  opacity: 0.56;
+  z-index: 0;
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 6% 94%, rgba(217, 95, 141, 0.18), transparent 25%),
+    radial-gradient(circle at 95% 12%, rgba(139, 111, 192, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 88%, rgba(95, 143, 114, 0.13), transparent 27%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0.32), transparent 34%, rgba(255, 255, 255, 0.14));
+  opacity: 0.92;
+  z-index: 0;
+}
+
+#root {
+  isolation: isolate;
+  position: relative;
+  z-index: 1;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+pre,
+code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.page-content,
+.sidebar {
+  isolation: isolate;
+  position: relative;
+}
+
+.page-content::before,
+.page-content::after,
+.sidebar::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
+  z-index: 0;
+}
+
+.page-content::before {
+  background: url('../assets/botanical-corner.svg') top right / contain no-repeat;
+  height: 390px;
+  opacity: 0.28;
+  right: -36px;
+  top: -28px;
+  width: 305px;
+  -webkit-mask-image: linear-gradient(145deg, #000 42%, transparent 96%);
+  mask-image: linear-gradient(145deg, #000 42%, transparent 96%);
+}
+
+.page-content::after {
+  background:
+    radial-gradient(circle at 28% 36%, rgba(217, 95, 141, 0.11), transparent 42%),
+    radial-gradient(circle at 70% 68%, rgba(139, 111, 192, 0.1), transparent 45%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  bottom: -105px;
+  filter: blur(1px);
+  height: 260px;
+  left: -82px;
+  transform: rotate(-12deg);
+  width: 390px;
+}
+
+.sidebar::before {
+  background: url('../assets/botanical-corner.svg') center / contain no-repeat;
+  bottom: -42px;
+  height: 250px;
+  opacity: 0.2;
+  right: -88px;
+  transform: rotate(178deg);
+  width: 198px;
+}
+
+.page-content > *,
+.sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.page-content *,
+.sidebar * {
+  min-width: 0;
 }
 
 button,
@@ -40,76 +153,52 @@ p {
   margin: 0;
 }
 
-.desktop-titlebar {
-  align-items: center;
-  background: linear-gradient(135deg, var(--color-blush-100), var(--color-peach-100));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.72);
-  display: flex;
-  height: 38px;
-  justify-content: space-between;
-  padding-left: 12px;
-  user-select: none;
-}
-
-.desktop-titlebar-brand {
-  align-items: center;
-  color: var(--color-ink-900);
-  display: flex;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.desktop-titlebar-mark {
-  align-items: center;
-  background: var(--color-blush-500);
-  border-radius: 6px;
-  color: var(--color-white);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 800;
-  height: 20px;
-  justify-content: center;
-  width: 20px;
-}
-
-.desktop-titlebar-actions {
-  display: flex;
-  height: 100%;
-}
-
-.desktop-titlebar-actions button {
-  background: transparent;
-  border: 0;
-  color: var(--color-ink-700);
-  min-width: 46px;
-}
-
-.desktop-titlebar-actions button:hover {
-  background: rgba(255, 255, 255, 0.48);
-}
-
 .eyebrow {
   color: var(--color-blush-500);
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   margin-bottom: var(--space-1);
+  position: relative;
   text-transform: uppercase;
+}
+
+.eyebrow::after {
+  background: linear-gradient(90deg, var(--color-blush-300), transparent);
+  border-radius: var(--radius-pill);
+  content: '';
+  height: 1px;
+  margin-left: 9px;
+  margin-top: 7px;
+  width: 32px;
 }
 
 .page-title-row {
   align-items: center;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  max-width: 100%;
+}
+
+.page-title-row > * {
+  min-width: 0;
 }
 
 .page-grid {
   display: grid;
-  gap: var(--space-5);
-  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-4);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  max-width: 100%;
+  width: 100%;
+}
+
+.page-grid > * {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .span-3 {
@@ -138,4 +227,15 @@ p {
 
 .span-12 {
   grid-column: span 12;
+}
+
+@media (max-width: 1260px) {
+  .page-title-row {
+    align-items: flex-start;
+  }
+
+  .page-content::before {
+    opacity: 0.2;
+    width: 250px;
+  }
 }

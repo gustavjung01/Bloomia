@@ -1,0 +1,25 @@
+.dialog-panel-wide {
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  max-width: min(1080px, 94vw);
+  overflow: hidden;
+  width: min(1080px, 94vw);
+}
+
+.dialog-panel-wide > .soft-card-header {
+  background: #fff;
+  border-bottom: 1px solid #ece7ea;
+  flex: 0 0 auto;
+  margin: -14px -14px 12px;
+  padding: 13px 14px 11px;
+}
+
+.dialog-panel-wide .system-modal-content {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.dialog-panel-wide .diagnostic-check-list {
+  max-height: none;
+}

@@ -24,21 +24,22 @@ import {
   type UnitRecord,
 } from '../../db/repositories/manualSetupRepository';
 import { formatCurrency } from '../../utils/format';
+import { DevicePaymentSettingsPanel } from './DevicePaymentSettingsPanel';
 import { ItemPhotoPanel } from './ItemPhotoPanel';
 
-type SettingsTab = 'shop' | 'catalog' | 'items';
+type SettingsTab = 'shop' | 'catalog' | 'items' | 'devices';
 type CatalogKind = 'category' | 'unit' | 'supplier';
 type ItemFilter = ItemType | 'all';
 
 interface CategoryFormState { id?: string; name: string; sortOrder: number; }
 interface UnitFormState { id?: string; name: string; symbol: string; }
 interface SupplierFormState { id?: string; name: string; phone: string; address: string; note: string; }
-interface ItemFormState { id?: string; name: string; sku: string; itemType: ItemType; categoryId: string; unitId: string; defaultSalePrice: string; isStockTracked: boolean; note: string; }
+interface ItemFormState { id?: string; name: string; sku: string; itemType: ItemType; categoryId: string; unitId: string; defaultSalePrice: string; defaultPurchasePrice: string; isStockTracked: boolean; note: string; }
 
 const emptyCategoryForm: CategoryFormState = { name: '', sortOrder: 0 };
 const emptyUnitForm: UnitFormState = { name: '', symbol: '' };
 const emptySupplierForm: SupplierFormState = { name: '', phone: '', address: '', note: '' };
-const emptyItemForm: ItemFormState = { name: '', sku: '', itemType: 'flower', categoryId: '', unitId: '', defaultSalePrice: '0', isStockTracked: true, note: '' };
+const emptyItemForm: ItemFormState = { name: '', sku: '', itemType: 'flower', categoryId: '', unitId: '', defaultSalePrice: '0', defaultPurchasePrice: '0', isStockTracked: true, note: '' };
 
 const itemTypeLabels: Record<ItemType, string> = {
   flower: 'Hoa tươi',
@@ -116,9 +117,11 @@ export function SettingsPage() {
   async function handleSaveItem() {
     if (!itemForm.name.trim()) { setError('Tên hàng hóa/dịch vụ là bắt buộc.'); return; }
     const defaultSalePrice = Number(itemForm.defaultSalePrice);
+    const defaultPurchasePrice = Number(itemForm.defaultPurchasePrice);
     if (Number.isNaN(defaultSalePrice) || defaultSalePrice < 0) { setError('Giá bán gợi ý phải là số không âm.'); return; }
+    if (Number.isNaN(defaultPurchasePrice) || defaultPurchasePrice < 0) { setError('Giá nhập mặc định phải là số không âm.'); return; }
     await runAction('Đã lưu hàng hóa/dịch vụ.', async () => {
-      await saveItem({ id: itemForm.id, name: itemForm.name, sku: itemForm.sku, itemType: itemForm.itemType, categoryId: itemForm.categoryId, unitId: itemForm.unitId, defaultSalePrice, isStockTracked: itemForm.itemType === 'service' ? false : itemForm.isStockTracked, note: itemForm.note });
+      await saveItem({ id: itemForm.id, name: itemForm.name, sku: itemForm.sku, itemType: itemForm.itemType, categoryId: itemForm.categoryId, unitId: itemForm.unitId, defaultSalePrice, defaultPurchasePrice, isStockTracked: itemForm.itemType === 'service' ? false : itemForm.isStockTracked, note: itemForm.note });
       setItemForm(emptyItemForm);
       await refreshManualSetupData();
     });
@@ -154,7 +157,7 @@ export function SettingsPage() {
     <>
       <div className="page-title-row">
         <div><span className="eyebrow">Cài đặt</span><h2>Setup thủ công cho chủ tiệm</h2></div>
-        <PillTabs value={activeTab} onChange={setActiveTab} options={[{ label: 'Thông tin shop', value: 'shop' }, { label: 'Danh mục nền', value: 'catalog' }, { label: 'Hàng hóa & dịch vụ', value: 'items' }]} />
+        <PillTabs value={activeTab} onChange={setActiveTab} options={[{ label: 'Thông tin shop', value: 'shop' }, { label: 'Danh mục nền', value: 'catalog' }, { label: 'Hàng hóa & dịch vụ', value: 'items' }, { label: 'Thiết bị & thanh toán', value: 'devices' }]} />
       </div>
 
       {(status || error) && <div className="setup-status-row">{status && <Badge tone="sage">{status}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
@@ -162,6 +165,7 @@ export function SettingsPage() {
       {activeTab === 'shop' && <ShopSettingsPanel shop={shop} shopForm={shopForm} setShopForm={setShopForm} onSave={handleSaveShop} />}
       {activeTab === 'catalog' && <CatalogSetupPanel categories={categories} units={units} suppliers={suppliers} categoryForm={categoryForm} unitForm={unitForm} supplierForm={supplierForm} setCategoryForm={setCategoryForm} setUnitForm={setUnitForm} setSupplierForm={setSupplierForm} onSaveCategory={handleSaveCategory} onSaveUnit={handleSaveUnit} onSaveSupplier={handleSaveSupplier} onArchive={handleArchive} />}
       {activeTab === 'items' && <><ItemSetupPanel itemForm={itemForm} setItemForm={setItemForm} items={filteredItems} itemFilter={itemFilter} setItemFilter={setItemFilter} categoryOptions={categoryOptions} unitOptions={unitOptions} onSaveItem={handleSaveItem} onArchiveItem={handleArchiveItem} /><div style={{ height: 20 }} /><div className="page-grid"><ItemPhotoPanel /></div></>}
+      {activeTab === 'devices' && <DevicePaymentSettingsPanel />}
     </>
   );
 }
@@ -185,7 +189,7 @@ function ShopSettingsPanel({ shop, shopForm, setShopForm, onSave }: ShopSettings
         <Button onClick={onSave}>Lưu thông tin shop</Button>
       </div>
     </SoftCard>
-    <SoftCard className="span-5" title="Preview hóa đơn" description="Thông tin này sẽ đi vào template in ở Phase C.">
+    <SoftCard className="span-5" title="Preview hóa đơn" description="Thông tin này sẽ đi vào template in.">
       <div className="invoice-preview-card"><strong>{shopForm.name || shop?.name || 'Tên shop'}</strong><span>{shopForm.phone || 'SĐT shop'}</span><span>{shopForm.address || 'Địa chỉ shop'}</span><hr /><p>{shopForm.invoiceFooter || 'Cảm ơn quý khách đã ghé Bloomia.'}</p></div>
     </SoftCard>
   </div>;
@@ -227,13 +231,14 @@ interface ItemSetupPanelProps {
 
 function ItemSetupPanel({ itemForm, setItemForm, items, itemFilter, setItemFilter, categoryOptions, unitOptions, onSaveItem, onArchiveItem }: ItemSetupPanelProps) {
   return <div className="page-grid">
-    <SoftCard className="span-5" title="Hàng hóa / dịch vụ" description="Dịch vụ sẽ tự tắt theo dõi tồn kho.">
+    <SoftCard className="span-5" title="Hàng hóa / dịch vụ" description="Giá nhập mặc định dùng để gợi ý vốn khi chưa có lô nhập.">
       <div className="setup-form-grid">
         <TextField label="Tên" value={itemForm.name} onChange={(event) => setItemForm((form) => ({ ...form, name: event.target.value }))} />
         <TextField label="SKU" value={itemForm.sku} onChange={(event) => setItemForm((form) => ({ ...form, sku: event.target.value }))} />
         <SelectField label="Loại" value={itemForm.itemType} options={Object.entries(itemTypeLabels).map(([value, label]) => ({ value, label }))} onChange={(event) => { const itemType = event.target.value as ItemType; setItemForm((form) => ({ ...form, itemType, isStockTracked: itemType === 'service' ? false : form.isStockTracked })); }} />
         <SelectField label="Nhóm hàng" value={itemForm.categoryId} options={categoryOptions} onChange={(event) => setItemForm((form) => ({ ...form, categoryId: event.target.value }))} />
         <SelectField label="Đơn vị tính" value={itemForm.unitId} options={unitOptions} onChange={(event) => setItemForm((form) => ({ ...form, unitId: event.target.value }))} />
+        <TextField label="Giá nhập mặc định" type="number" min={0} value={itemForm.defaultPurchasePrice} onChange={(event) => setItemForm((form) => ({ ...form, defaultPurchasePrice: event.target.value }))} />
         <TextField label="Giá bán gợi ý" type="number" min={0} value={itemForm.defaultSalePrice} onChange={(event) => setItemForm((form) => ({ ...form, defaultSalePrice: event.target.value }))} />
         <label className="setup-checkbox"><input type="checkbox" checked={itemForm.itemType === 'service' ? false : itemForm.isStockTracked} disabled={itemForm.itemType === 'service'} onChange={(event) => setItemForm((form) => ({ ...form, isStockTracked: event.target.checked }))} />Theo dõi tồn kho</label>
         <TextArea label="Ghi chú" value={itemForm.note} onChange={(event) => setItemForm((form) => ({ ...form, note: event.target.value }))} />
@@ -241,9 +246,9 @@ function ItemSetupPanel({ itemForm, setItemForm, items, itemFilter, setItemFilte
         {itemForm.id && <Button variant="ghost" onClick={() => setItemForm(emptyItemForm)}>Hủy sửa</Button>}
       </div>
     </SoftCard>
-    <SoftCard className="span-7" title="Danh sách hàng hóa" description="Bấm sửa để cập nhật nhanh giá bán, nhóm hàng hoặc tồn kho.">
+    <SoftCard className="span-7" title="Danh sách hàng hóa" description="Bấm sửa để cập nhật nhanh giá nhập, giá bán, nhóm hàng hoặc tồn kho.">
       <PillTabs value={itemFilter} onChange={(value) => setItemFilter(value)} options={itemFilterOptions} />
-      <div className="setup-list setup-list-tall">{items.length === 0 && <p className="setup-muted">Chưa có hàng hóa/dịch vụ.</p>}{items.map((item) => <div className="setup-list-row" key={item.id}><div><strong>{item.name}</strong><span>{itemTypeLabels[item.item_type]} • {item.category_name ?? 'Chưa nhóm'} • {item.unit_symbol ?? 'Chưa đơn vị'} • {formatCurrency(item.default_sale_price)}</span></div><div className="setup-row-actions"><Button variant="ghost" onClick={() => setItemForm({ id: item.id, name: item.name, sku: item.sku ?? '', itemType: item.item_type, categoryId: item.category_id ?? '', unitId: item.unit_id ?? '', defaultSalePrice: String(item.default_sale_price), isStockTracked: Boolean(item.is_stock_tracked), note: item.note ?? '' })}>Sửa</Button><Button variant="soft" onClick={() => onArchiveItem(item.id)}>Ẩn</Button></div></div>)}</div>
+      <div className="setup-list setup-list-tall">{items.length === 0 && <p className="setup-muted">Chưa có hàng hóa/dịch vụ.</p>}{items.map((item) => <div className="setup-list-row" key={item.id}><div><strong>{item.name}</strong><span>{itemTypeLabels[item.item_type]} • {item.category_name ?? 'Chưa nhóm'} • {item.unit_symbol ?? 'Chưa đơn vị'} • Nhập {formatCurrency(item.default_purchase_price)} • Bán {formatCurrency(item.default_sale_price)}</span></div><div className="setup-row-actions"><Button variant="ghost" onClick={() => setItemForm({ id: item.id, name: item.name, sku: item.sku ?? '', itemType: item.item_type, categoryId: item.category_id ?? '', unitId: item.unit_id ?? '', defaultSalePrice: String(item.default_sale_price), defaultPurchasePrice: String(item.default_purchase_price), isStockTracked: Boolean(item.is_stock_tracked), note: item.note ?? '' })}>Sửa</Button><Button variant="soft" onClick={() => onArchiveItem(item.id)}>Ẩn</Button></div></div>)}</div>
     </SoftCard>
   </div>;
 }

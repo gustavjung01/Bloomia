@@ -4,7 +4,7 @@ import { Badge, Button, SelectField, SoftCard, TextField } from '../../component
 import { listItems, type ItemRecord } from '../../db/repositories/manualSetupRepository';
 import { loadPhotoMap, savePhotoMap } from '../../db/repositories/photoStore';
 import { getRuntimeSettings, saveRuntimeSettings, type RuntimeMode, type RuntimeSettings } from '../../db/repositories/runtimeSettingsRepository';
-import { backupBloomiaDatabase, getBloomiaAppStatus, listBloomiaBackups, resolveMediaUrl, saveBloomiaMedia, stageBloomiaDatabaseRestore, type BloomiaAppStatus, type MediaSaveResult } from '../../services/system/systemService';
+import { backupBloomiaDatabase, getBloomiaAppStatus, listBloomiaBackups, openBloomiaAppDataDir, resolveMediaUrl, saveBloomiaMedia, stageBloomiaDatabaseRestore, type BloomiaAppStatus, type MediaSaveResult } from '../../services/system/systemService';
 
 const ownerOptions = [
   { label: 'Logo shop', value: 'shop' },
@@ -19,6 +19,18 @@ const aiModeOptions = [
   { label: 'Cloud - gọi Bloomia AI service', value: 'cloud' },
   { label: 'Off - tắt AI', value: 'off' },
 ];
+
+function formatBytes(bytes?: number | null) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value >= 10 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
+}
 
 export function SystemPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -36,16 +48,54 @@ export function SystemPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => { void refresh(); }, []);
-  useEffect(() => { void refreshPreview(); }, [selectedItemId, photoMap]);
+  useEffect(() => {
+    void refresh();
+  }, []);
 
-  const itemOptions = useMemo(() => [{ label: 'Chọn sản phẩm', value: '' }, ...items.map((item) => ({ label: item.name, value: item.id }))], [items]);
-  const backupOptions = useMemo(() => [{ label: 'Chọn bản backup', value: '' }, ...backups.map((path) => ({ label: path.split(/[\\/]/).pop() ?? path, value: path }))], [backups]);
+  useEffect(() => {
+    void refreshPreview();
+  }, [selectedItemId, photoMap]);
+
+  const itemOptions = useMemo(
+    () => [{ label: 'Chọn sản phẩm', value: '' }, ...items.map((item) => ({ label: item.name, value: item.id }))],
+    [items],
+  );
+
+  const backupOptions = useMemo(
+    () => [{ label: 'Chọn bản backup', value: '' }, ...backups.map((path) => ({ label: path.split(/[\\/]/).pop() ?? path, value: path }))],
+    [backups],
+  );
+
+  const runtimeRows = [
+    { label: 'App version', value: status?.app_version ?? '—', strong: true },
+    { label: 'Backend runtime', value: 'Rust/Tauri đóng gói trong bloomia.exe', strong: true },
+    { label: 'Frontend DB client', value: 'sqlite:bloomia.db', strong: true },
+    { label: 'Dữ liệu shop', value: 'Nằm trong AppData, không nằm trong thư mục cài app', strong: true },
+  ];
+
+  const dbRows = [
+    { label: 'DB path', value: status?.database_path ?? '—', code: true },
+    { label: 'DB exists', value: status?.database_exists ? 'Có' : 'Chưa thấy file DB', strong: true },
+    { label: 'DB size', value: status?.database_exists ? formatBytes(status.database_size_bytes) : '0 B', strong: true },
+    { label: 'Pending restore', value: status?.pending_restore_exists ? 'Có, mở lại app để áp dụng' : 'Không', strong: true },
+  ];
+
+  const pathRows = [
+    { label: 'App data path', value: status?.app_data_dir ?? '—' },
+    { label: 'Media path', value: status?.media_dir ?? '—' },
+    { label: 'Backup path', value: status?.backup_dir ?? '—' },
+  ];
 
   async function refresh() {
     try {
       setError('');
-      const [nextStatus, nextBackups, itemRows, nextPhotoMap, nextAISettings] = await Promise.all([getBloomiaAppStatus(), listBloomiaBackups(), listItems(), loadPhotoMap(), getRuntimeSettings()]);
+      const [nextStatus, nextBackups, itemRows, nextPhotoMap, nextAISettings] = await Promise.all([
+        getBloomiaAppStatus(),
+        listBloomiaBackups(),
+        listItems(),
+        loadPhotoMap(),
+        getRuntimeSettings(),
+      ]);
       setStatus(nextStatus);
       setBackups(nextBackups);
       setItems(itemRows);
@@ -62,6 +112,18 @@ export function SystemPage() {
   async function refreshPreview() {
     const relativePath = selectedItemId ? photoMap[selectedItemId] : '';
     setSelectedPreviewUrl(relativePath ? await resolveMediaUrl(relativePath) : '');
+  }
+
+  async function handleOpenDataFolder() {
+    try {
+      setError('');
+      await openBloomiaAppDataDir();
+      setMessage('Đã mở thư mục dữ liệu của Bloomia.');
+    } catch (caught) {
+      console.error(caught);
+      setMessage('');
+      setError('Không mở được thư mục dữ liệu.');
+    }
   }
 
   async function handleBackup() {
@@ -157,18 +219,64 @@ export function SystemPage() {
 
   return (
     <>
-      <div className="page-title-row"><div><span className="eyebrow">Hệ thống</span><h2>DB, media, backup & release</h2></div><Button onClick={refresh}>Làm mới</Button></div>
-      {(message || error) && <div className="setup-status-row">{message && <Badge tone="sage">{message}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
+      <div className="page-title-row">
+        <div>
+          <span className="eyebrow">Hệ thống</span>
+          <h2>DB, media, backup & release</h2>
+        </div>
+        <Button onClick={refresh}>Làm mới</Button>
+      </div>
+
+      {(message || error) && (
+        <div className="setup-status-row">
+          {message && <Badge tone="sage">{message}</Badge>}
+          {error && <Badge tone="peach">{error}</Badge>}
+        </div>
+      )}
+
       <div className="page-grid">
-        <SoftCard className="span-6" title="Local database" description="Cài mới phải tự tạo DB local và giữ lại khi update.">
-          <div className="system-info-list">
-            <div><span>DB status</span><strong>{status?.database_exists ? 'Đã có DB' : 'Chưa thấy file DB'}</strong></div>
-            <div><span>Pending restore</span><strong>{status?.pending_restore_exists ? 'Có, mở lại app để áp dụng' : 'Không'}</strong></div>
-            <div><span>App data</span><code>{status?.app_data_dir ?? '—'}</code></div>
-            <div><span>Database</span><code>{status?.database_path ?? '—'}</code></div>
-            <div><span>Media</span><code>{status?.media_dir ?? '—'}</code></div>
+        <SoftCard
+          className="span-6"
+          title="Audit runtime DB"
+          description="Backend Rust được đóng gói trong bloomia.exe. Dữ liệu shop nằm trong AppData, không nằm trong thư mục cài app."
+          action={<Button variant="soft" onClick={handleOpenDataFolder}>Mở AppData</Button>}
+        >
+          <div className="setup-status-row" style={{ marginBottom: 16 }}>
+            <Badge tone={status?.database_exists ? 'sage' : 'peach'}>{status?.database_exists ? 'DB sẵn sàng' : 'Chưa thấy DB'}</Badge>
+            <Badge tone={status?.pending_restore_exists ? 'peach' : 'lavender'}>{status?.pending_restore_exists ? 'Có restore pending' : 'Không pending restore'}</Badge>
           </div>
-          <Button variant="soft" onClick={handleBackup}>Backup DB ngay</Button>
+          <div className="system-info-list">
+            {dbRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                {row.code ? <code>{row.value}</code> : <strong>{row.value}</strong>}
+              </div>
+            ))}
+          </div>
+        </SoftCard>
+
+        <SoftCard className="span-6" title="Runtime app layout" description="Các path thật app đang dùng khi chạy trên máy khách.">
+          <div className="system-info-list">
+            {runtimeRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+              </div>
+            ))}
+            {pathRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <code>{row.value}</code>
+              </div>
+            ))}
+          </div>
+        </SoftCard>
+
+        <SoftCard className="span-6" title="Backup DB" description="Tạo backup ngay từ DB local hiện tại trước khi sửa dữ liệu hoặc restore.">
+          <div className="setup-form-grid">
+            <p className="setup-muted">Backup lấy trực tiếp từ file SQLite local đang nằm trong AppData.</p>
+            <Button onClick={handleBackup} disabled={!status?.database_exists}>Backup DB ngay</Button>
+          </div>
         </SoftCard>
 
         <SoftCard className="span-6" title="Restore DB an toàn" description="Chọn backup, app sẽ stage restore. Mở lại Bloomia để áp dụng trước khi DB được đọc.">
@@ -181,9 +289,26 @@ export function SystemPage() {
 
         <SoftCard className="span-6" title="Bloomia AI runtime" description="Bán tool thì mặc định để Local. Cloud chỉ dành cho bản bạn vận hành AI service riêng.">
           <div className="setup-form-grid">
-            <SelectField label="Chế độ AI" value={aiSettings.mode} options={aiModeOptions} onChange={(event) => setAISettings((current) => ({ ...current, mode: event.target.value as RuntimeMode }))} />
-            <TextField label="AI service URL" value={aiSettings.serviceUrl} placeholder="https://ai.your-domain.com" onChange={(event) => setAISettings((current) => ({ ...current, serviceUrl: event.target.value }))} />
-            <label className="setup-checkbox"><input type="checkbox" checked={aiSettings.eventDispatchEnabled} onChange={(event) => setAISettings((current) => ({ ...current, eventDispatchEnabled: event.target.checked }))} />Gửi event quan trọng sang AI service</label>
+            <SelectField
+              label="Chế độ AI"
+              value={aiSettings.mode}
+              options={aiModeOptions}
+              onChange={(event) => setAISettings((current) => ({ ...current, mode: event.target.value as RuntimeMode }))}
+            />
+            <TextField
+              label="AI service URL"
+              value={aiSettings.serviceUrl}
+              placeholder="https://ai.your-domain.com"
+              onChange={(event) => setAISettings((current) => ({ ...current, serviceUrl: event.target.value }))}
+            />
+            <label className="setup-checkbox">
+              <input
+                type="checkbox"
+                checked={aiSettings.eventDispatchEnabled}
+                onChange={(event) => setAISettings((current) => ({ ...current, eventDispatchEnabled: event.target.checked }))}
+              />
+              Gửi event quan trọng sang AI service
+            </label>
             <Button onClick={handleSaveAISettings}>Lưu cấu hình AI</Button>
           </div>
         </SoftCard>
@@ -204,13 +329,29 @@ export function SystemPage() {
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handleFileChange} />
             <Button onClick={() => fileInputRef.current?.click()}>Upload ảnh</Button>
           </div>
-          {lastMedia && <div className="system-info-list"><div><span>File đã lưu</span><code>{lastMedia.full_path}</code></div><div><span>Dung lượng sau tối ưu</span><strong>{Math.round(lastMedia.size_bytes / 1024)} KB</strong></div></div>}
+          {lastMedia && (
+            <div className="system-info-list">
+              <div>
+                <span>File đã lưu</span>
+                <code>{lastMedia.full_path}</code>
+              </div>
+              <div>
+                <span>Dung lượng sau tối ưu</span>
+                <strong>{formatBytes(lastMedia.size_bytes)}</strong>
+              </div>
+            </div>
+          )}
         </SoftCard>
 
         <SoftCard className="span-6" title="Backups gần đây" description="Các backup nằm trong app data local, chưa upload cloud.">
           <div className="system-info-list">
             {backups.length === 0 && <p className="setup-muted">Chưa có backup.</p>}
-            {backups.map((path) => <div key={path}><span>Backup</span><code>{path}</code></div>)}
+            {backups.map((path) => (
+              <div key={path}>
+                <span>Backup</span>
+                <code>{path}</code>
+              </div>
+            ))}
           </div>
         </SoftCard>
       </div>

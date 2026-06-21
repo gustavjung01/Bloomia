@@ -8,4 +8,11 @@ export const photoMigrations: Migration[] = [
       'ALTER TABLE items ADD COLUMN image_path TEXT',
     ],
   },
+  {
+    id: '0006_item_default_purchase_price',
+    description: 'Default purchase price for item setup',
+    statements: [
+      'ALTER TABLE items ADD COLUMN default_purchase_price INTEGER NOT NULL DEFAULT 0',
+    ],
+  },
 ];

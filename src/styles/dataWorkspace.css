@@ -1,0 +1,154 @@
+.purchase-total-pill {
+  background: #f7edf1;
+  border: 1px solid #ead7df;
+  border-radius: 9px;
+  gap: 2px;
+  padding: 9px 11px;
+}
+
+.purchase-total-pill span,
+.inventory-overview-card span {
+  color: #817880;
+  font-size: 11px;
+}
+
+.purchase-total-pill strong,
+.inventory-overview-card strong {
+  font-size: 18px;
+}
+
+.purchase-line-list {
+  gap: 6px;
+  margin: 10px 0;
+  max-height: calc(100vh - 330px);
+  padding-right: 2px;
+}
+
+.purchase-line-row {
+  background: #fff;
+  border: 1px solid #e3dee1;
+  border-radius: 8px;
+  gap: 7px;
+  padding: 8px;
+}
+
+.inventory-overview-grid {
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: calc(100vh - 250px);
+  padding-right: 2px;
+}
+
+.inventory-overview-card {
+  background: #fff;
+  border: 1px solid #e3dee1;
+  border-radius: 9px;
+  gap: 5px;
+  padding: 10px;
+}
+
+.inventory-table {
+  gap: 5px;
+  max-height: calc(100vh - 225px);
+  padding-right: 2px;
+}
+
+.inventory-table-head {
+  color: #817880;
+  font-size: 10px;
+  gap: 8px;
+  letter-spacing: 0.035em;
+  padding: 0 9px 2px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.inventory-table-row {
+  background: #fff;
+  border: 1px solid #e4dfe2;
+  border-radius: 8px;
+  gap: 8px;
+  padding: 8px 9px;
+}
+
+.inventory-table-row:hover,
+.report-table-row:hover,
+.setup-list-row:hover {
+  background: #fdfbfc;
+  border-color: #d4cbd0;
+}
+
+.report-table-head {
+  background: #f7f5f3;
+  padding-block: 5px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.report-table-row {
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.system-diagnostics-grid {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.diagnostic-summary {
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.diagnostic-check-list {
+  gap: 5px;
+  margin-bottom: 8px;
+  max-height: calc(100vh - 390px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.diagnostic-check {
+  gap: 8px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  padding: 8px 9px;
+}
+
+.diagnostic-marker {
+  font-size: 12px;
+  height: 23px;
+  width: 23px;
+}
+
+.diagnostic-check p {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.acceptance-grid {
+  gap: 7px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.acceptance-item {
+  gap: 7px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  padding: 8px 9px;
+}
+
+.acceptance-item p {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.legacy-system-section {
+  margin-top: 10px;
+}
+
+@media (max-width: 1320px) {
+  .inventory-overview-grid,
+  .acceptance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

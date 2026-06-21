@@ -26,20 +26,33 @@ export function ItemPhotoPanel() {
   }
 
   async function refreshPreview() {
-    const relativePath = itemId ? photoMap[itemId] : '';
-    setPreviewUrl(relativePath ? await resolveMediaUrl(relativePath) : '');
+    try {
+      const relativePath = itemId ? photoMap[itemId] : '';
+      setPreviewUrl(relativePath ? await resolveMediaUrl(relativePath) : '');
+    } catch (error) {
+      console.error(error);
+      setPreviewUrl('');
+      setMessage('Không tạo được URL preview từ ảnh local.');
+    }
   }
 
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !itemId) return;
-    setMessage('Đang resize và lưu ảnh...');
-    const result = await saveBloomiaMedia('items', file);
-    const nextMap = { ...photoMap, [itemId]: result.relative_path };
-    await savePhotoMap(nextMap);
-    setPhotoMap(nextMap);
-    setMessage(`Đã gắn ảnh tối ưu: ${result.relative_path}`);
+
+    try {
+      setMessage('Đang resize và lưu ảnh...');
+      const result = await saveBloomiaMedia('items', file);
+      const nextMap = { ...photoMap, [itemId]: result.relative_path };
+      await savePhotoMap(nextMap);
+      setPhotoMap(nextMap);
+      setPreviewUrl(await resolveMediaUrl(result.relative_path));
+      setMessage(`Đã gắn ảnh: ${result.relative_path}`);
+    } catch (error) {
+      console.error(error);
+      setMessage('Không lưu hoặc hiển thị được ảnh. Kiểm tra quyền media local.');
+    }
   }
 
   async function clearPhoto() {
@@ -48,14 +61,15 @@ export function ItemPhotoPanel() {
     delete nextMap[itemId];
     await savePhotoMap(nextMap);
     setPhotoMap(nextMap);
+    setPreviewUrl('');
     setMessage('Đã bỏ ảnh khỏi sản phẩm. File cũ vẫn giữ trong media để tránh xóa nhầm.');
   }
 
   return (
-    <SoftCard className="span-7" title="Ảnh sản phẩm" description="Upload ảnh bằng file picker. Ảnh lớn tự resize về WebP trước khi lưu local.">
+    <SoftCard className="span-7" title="Ảnh sản phẩm" description="Ảnh được resize về WebP và hiển thị dạng thumbnail gọn.">
       <div className="setup-form-grid">
         <SelectField label="Sản phẩm" value={itemId} options={itemOptions} onChange={(event) => setItemId(event.target.value)} />
-        {previewUrl && <img src={previewUrl} alt="Ảnh sản phẩm" className="item-photo-preview" />}
+        {previewUrl && <img src={previewUrl} alt="Ảnh sản phẩm" className="item-photo-preview" onError={() => setMessage('File ảnh đã được ghi nhận nhưng WebView chưa đọc được. Hãy đóng app và chạy lại sau khi cập nhật cấu hình media.')} />}
         <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleUpload} />
         <Button onClick={() => inputRef.current?.click()} disabled={!itemId}>Upload & gắn ảnh</Button>
         <Button variant="ghost" onClick={clearPhoto} disabled={!itemId || !photoMap[itemId]}>Bỏ ảnh</Button>
