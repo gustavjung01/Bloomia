@@ -1,3 +1,4 @@
+import bloomiaMonogram from '../assets/bloomia-monogram.svg';
 import { routes, type RouteKey } from './routes';
 
 interface SidebarProps {
@@ -9,7 +10,9 @@ export function Sidebar({ activeRoute, onRouteChange }: SidebarProps) {
   return (
     <aside className="sidebar" aria-label="Bloomia navigation">
       <div className="brand-card">
-        <div className="brand-mark">B</div>
+        <div className="brand-mark" aria-hidden="true">
+          <img src={bloomiaMonogram} alt="" />
+        </div>
         <div>
           <strong>Bloomia</strong>
           <span>Studio POS</span>
