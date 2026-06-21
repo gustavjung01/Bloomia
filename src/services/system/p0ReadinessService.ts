@@ -45,24 +45,39 @@ const requiredPaymentColumns = [
   'transfer_confirmed_at',
 ];
 
+const requiredSaleColumns = [
+  'sale_status',
+  'finalized_at',
+  'cancelled_at',
+  'cancel_reason',
+  'refund_status',
+  'refunded_at',
+  'revision_no',
+  'print_count',
+  'last_printed_at',
+  'replaces_sale_id',
+  'replaced_by_sale_id',
+];
+
 export async function runP0ReadinessAudit(): Promise<P0ReadinessReport> {
   const checks: ReadinessCheck[] = [];
   const db = await getDatabase();
 
   try {
+    const expected = ['0007_checkout_amount_details', '0008_payment_qr_snapshot', '0009_sale_lifecycle'];
     const migrationRows = await db.select<{ id: string }>(
-      "SELECT id FROM schema_migrations WHERE id IN ('0007_checkout_amount_details', '0008_payment_qr_snapshot')",
+      "SELECT id FROM schema_migrations WHERE id IN ('0007_checkout_amount_details', '0008_payment_qr_snapshot', '0009_sale_lifecycle')",
     );
     const applied = new Set(migrationRows.map((row) => row.id));
-    const missing = ['0007_checkout_amount_details', '0008_payment_qr_snapshot'].filter((id) => !applied.has(id));
+    const missing = expected.filter((id) => !applied.has(id));
     checks.push({
       id: 'migrations',
-      label: 'Migration thanh toán & QR',
+      label: 'Migration thanh toán & vòng đời đơn',
       status: missing.length === 0 ? 'pass' : 'fail',
-      detail: missing.length === 0 ? 'Đã áp dụng đầy đủ migration 0007 và 0008.' : `Thiếu migration: ${missing.join(', ')}.`,
+      detail: missing.length === 0 ? 'Đã áp dụng đầy đủ migration 0007, 0008 và 0009.' : `Thiếu migration: ${missing.join(', ')}.`,
     });
   } catch (error) {
-    checks.push({ id: 'migrations', label: 'Migration thanh toán & QR', status: 'fail', detail: errorText(error) });
+    checks.push({ id: 'migrations', label: 'Migration thanh toán & vòng đời đơn', status: 'fail', detail: errorText(error) });
   }
 
   try {
@@ -77,6 +92,20 @@ export async function runP0ReadinessAudit(): Promise<P0ReadinessReport> {
     });
   } catch (error) {
     checks.push({ id: 'payment-schema', label: 'Cấu trúc bảng payment', status: 'fail', detail: errorText(error) });
+  }
+
+  try {
+    const columns = await db.select<ColumnRow>('PRAGMA table_info(sales)');
+    const available = new Set(columns.map((row) => row.name));
+    const missingColumns = requiredSaleColumns.filter((name) => !available.has(name));
+    checks.push({
+      id: 'sale-lifecycle-schema',
+      label: 'Cấu trúc vòng đời đơn',
+      status: missingColumns.length === 0 ? 'pass' : 'fail',
+      detail: missingColumns.length === 0 ? 'Đủ trạng thái chờ, chốt, hủy, hoàn tiền, sửa đơn và lịch sử in.' : `Thiếu cột: ${missingColumns.join(', ')}.`,
+    });
+  } catch (error) {
+    checks.push({ id: 'sale-lifecycle-schema', label: 'Cấu trúc vòng đời đơn', status: 'fail', detail: errorText(error) });
   }
 
   const probeKey = `p0_write_probe_${Date.now()}`;
@@ -153,23 +182,46 @@ export async function runP0ReadinessAudit(): Promise<P0ReadinessReport> {
   }
 
   try {
-    const transferRows = await db.select<CountRow>("SELECT COUNT(*) AS count FROM payments WHERE method = 'bank_transfer'");
+    const transferRows = await db.select<CountRow>(
+      `SELECT COUNT(*) AS count
+       FROM payments
+       INNER JOIN sales ON sales.id = payments.sale_id
+       WHERE payments.method = 'bank_transfer'
+         AND COALESCE(sales.sale_status, 'completed') = 'completed'`,
+    );
     const invalidRows = await db.select<CountRow>(
       `SELECT COUNT(*) AS count
        FROM payments
-       WHERE method = 'bank_transfer'
-         AND (qr_amount <= 0 OR qr_image_url IS NULL OR transfer_reference IS NULL OR transfer_confirmed_at IS NULL)`,
+       INNER JOIN sales ON sales.id = payments.sale_id
+       WHERE payments.method = 'bank_transfer'
+         AND COALESCE(sales.sale_status, 'completed') = 'completed'
+         AND (payments.qr_amount <= 0 OR payments.qr_image_url IS NULL OR payments.transfer_reference IS NULL OR payments.transfer_confirmed_at IS NULL)`,
     );
     const total = Number(transferRows[0]?.count ?? 0);
     const invalid = Number(invalidRows[0]?.count ?? 0);
     checks.push({
       id: 'transfer-snapshots',
-      label: 'Snapshot chuyển khoản đã lưu',
+      label: 'Snapshot chuyển khoản đã chốt',
       status: invalid > 0 ? 'warn' : 'pass',
-      detail: total === 0 ? 'Chưa có hóa đơn chuyển khoản để đối chiếu.' : `${total - invalid}/${total} payment có đầy đủ QR và thời điểm xác nhận.`,
+      detail: total === 0 ? 'Chưa có hóa đơn chuyển khoản đã chốt để đối chiếu.' : `${total - invalid}/${total} payment đã chốt có đầy đủ QR và thời điểm xác nhận.`,
     });
   } catch (error) {
-    checks.push({ id: 'transfer-snapshots', label: 'Snapshot chuyển khoản đã lưu', status: 'fail', detail: errorText(error) });
+    checks.push({ id: 'transfer-snapshots', label: 'Snapshot chuyển khoản đã chốt', status: 'fail', detail: errorText(error) });
+  }
+
+  try {
+    const pendingRows = await db.select<CountRow>("SELECT COUNT(*) AS count FROM sales WHERE sale_status = 'pending_payment'");
+    const refundRows = await db.select<CountRow>("SELECT COUNT(*) AS count FROM sales WHERE sale_status = 'cancelled' AND refund_status = 'required'");
+    const pending = Number(pendingRows[0]?.count ?? 0);
+    const refunds = Number(refundRows[0]?.count ?? 0);
+    checks.push({
+      id: 'open-sale-actions',
+      label: 'Đơn cần xử lý',
+      status: refunds > 0 ? 'warn' : 'pass',
+      detail: `${pending} đơn đang chờ thanh toán • ${refunds} hóa đơn đã hủy đang cần hoàn tiền.`,
+    });
+  } catch (error) {
+    checks.push({ id: 'open-sale-actions', label: 'Đơn cần xử lý', status: 'fail', detail: errorText(error) });
   }
 
   const passed = checks.filter((check) => check.status === 'pass').length;
