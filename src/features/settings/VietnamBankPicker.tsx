@@ -11,9 +11,10 @@ interface VietnamBankPickerProps {
   bankCode: string;
   bankBin: string;
   onSelect: (bank: VietnamBankRecord) => void;
+  onValidityChange?: (valid: boolean) => void;
 }
 
-export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: VietnamBankPickerProps) {
+export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect, onValidityChange }: VietnamBankPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [banks, setBanks] = useState<VietnamBankRecord[]>([]);
   const [query, setQuery] = useState(bankName || bankCode || bankBin);
@@ -51,6 +52,17 @@ export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: Vie
     [banks, bankBin, bankCode],
   );
 
+  const selectionValid = useMemo(() => {
+    if (!selectedBank || !selectedBank.transferSupported) return false;
+    const savedName = normalizeSearch(bankName);
+    return Boolean(savedName) && [selectedBank.shortName, selectedBank.name, selectedBank.code]
+      .some((value) => normalizeSearch(value) === savedName);
+  }, [bankName, selectedBank]);
+
+  useEffect(() => {
+    if (banks.length > 0) onValidityChange?.(selectionValid);
+  }, [banks.length, onValidityChange, selectionValid]);
+
   async function refresh(forceRefresh: boolean) {
     try {
       setLoading(true);
@@ -61,6 +73,7 @@ export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: Vie
     } catch (caught) {
       console.error(caught);
       setError('Không tải được danh mục ngân hàng VietQR. Kiểm tra Internet rồi thử lại.');
+      onValidityChange?.(false);
     } finally {
       setLoading(false);
     }
@@ -69,15 +82,20 @@ export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: Vie
   function selectBank(bank: VietnamBankRecord) {
     if (!bank.transferSupported) return;
     onSelect(bank);
+    onValidityChange?.(true);
     setQuery(bank.shortName);
     setOpen(false);
     setError('');
   }
 
+  const mismatchMessage = selectedBank && !selectionValid
+    ? `Dữ liệu cũ không khớp: ${bankName || 'chưa có tên'} nhưng ${bankCode || bankBin} thuộc ${selectedBank.shortName}. Hãy chọn lại ngân hàng.`
+    : '';
+
   return (
     <div className="bank-picker" ref={containerRef}>
       <label htmlFor="vietqr-bank-search">Ngân hàng nhận tiền</label>
-      <div className={`bank-picker-control${open ? ' is-open' : ''}`}>
+      <div className={`bank-picker-control${open ? ' is-open' : ''}${mismatchMessage ? ' is-invalid' : ''}`}>
         {selectedBank?.logo ? <img src={selectedBank.logo} alt="" aria-hidden="true" /> : <span className="bank-picker-monogram">₫</span>}
         <input
           id="vietqr-bank-search"
@@ -88,6 +106,7 @@ export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: Vie
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
+            onValidityChange?.(false);
           }}
         />
         <button type="button" className="bank-picker-toggle" onClick={() => setOpen((current) => !current)} aria-label="Mở danh sách ngân hàng">⌄</button>
@@ -127,14 +146,14 @@ export function VietnamBankPicker({ bankName, bankCode, bankBin, onSelect }: Vie
       )}
 
       <div className="bank-picker-meta">
-        {selectedBank ? (
+        {selectionValid && selectedBank ? (
           <span>Đã chọn: {selectedBank.shortName} • {selectedBank.code} • BIN {selectedBank.bin}</span>
         ) : (
           <span>Chọn ngân hàng để tự điền BIN và mã ngân hàng.</span>
         )}
         {cacheTimestamp && <span>Danh mục cập nhật {new Date(cacheTimestamp).toLocaleDateString('vi-VN')}</span>}
       </div>
-      {error && <p className="bank-picker-error">{error}</p>}
+      {(mismatchMessage || error) && <p className="bank-picker-error">{mismatchMessage || error}</p>}
     </div>
   );
 }
