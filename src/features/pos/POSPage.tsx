@@ -44,13 +44,6 @@ const paymentOptions = [
   { label: 'Công nợ', value: 'debt' },
 ];
 
-const paymentLabels: Record<PaymentMethod, string> = {
-  cash: 'Tiền mặt',
-  bank_transfer: 'Chuyển khoản',
-  card: 'Thẻ',
-  debt: 'Công nợ',
-};
-
 export function POSPage() {
   const [view, setView] = useState<PosView>('sale');
   const [catalogView, setCatalogView] = useState<CatalogView>('items');
@@ -66,7 +59,7 @@ export function POSPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [note, setNote] = useState('');
-  const [discountAmount, setDiscountAmount] = useState('0');
+  const [discountPercent, setDiscountPercent] = useState('0');
   const [shippingFee, setShippingFee] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState('');
@@ -81,6 +74,7 @@ export function POSPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const [checkoutFeedback, setCheckoutFeedback] = useState('');
 
   useEffect(() => {
     void loadPosData();
@@ -156,8 +150,14 @@ export function POSPage() {
     );
   }, [recipes, catalogQuery]);
 
+  const subtotal = useMemo(() => Math.round(cart.reduce((sum, line) => sum + lineTotal(line), 0)), [cart]);
+  const safeDiscountPercent = useMemo(() => clampPercentage(Number(discountPercent)), [discountPercent]);
+  const discountAmount = useMemo(
+    () => Math.round((subtotal * safeDiscountPercent) / 100),
+    [safeDiscountPercent, subtotal],
+  );
   const totals = useMemo(
-    () => calculateCartTotals(cart, Number(discountAmount), Number(shippingFee)),
+    () => calculateCartTotals(cart, discountAmount, Number(shippingFee)),
     [cart, discountAmount, shippingFee],
   );
 
@@ -205,6 +205,7 @@ export function POSPage() {
 
   function selectCustomer(customerId: string) {
     setSelectedCustomerId(customerId);
+    setCheckoutFeedback('');
     if (!customerId) {
       setCustomerName('');
       setCustomerPhone('');
@@ -219,6 +220,7 @@ export function POSPage() {
 
   function addCatalogItem(item: ItemRecord) {
     setCompletedSale(null);
+    setCheckoutFeedback('');
     setCart((current) => {
       const existing = current.find((line) => line.itemId === item.id && !line.isCustom);
       if (existing) {
@@ -246,6 +248,7 @@ export function POSPage() {
 
   function addRecipe(recipe: HydratedRecipe) {
     setCompletedSale(null);
+    setCheckoutFeedback('');
     const parentLine: CartLine = {
       id: createLocalId('recipe-cart'),
       itemId: null,
@@ -278,6 +281,7 @@ export function POSPage() {
     }
 
     setCompletedSale(null);
+    setCheckoutFeedback('');
     setCart((current) => [
       ...current,
       {
@@ -295,6 +299,7 @@ export function POSPage() {
   }
 
   function updateLine(id: string, patch: Partial<CartLine>) {
+    setCheckoutFeedback('');
     setCart((current) =>
       current.map((line) =>
         line.id === id
@@ -310,6 +315,7 @@ export function POSPage() {
   }
 
   function removeLine(id: string) {
+    setCheckoutFeedback('');
     setCart((current) => current.filter((line) => line.id !== id));
   }
 
@@ -323,25 +329,35 @@ export function POSPage() {
   }
 
   async function checkoutAndSave() {
-    if (cart.length === 0 || saving) {
-      setError('Chọn ít nhất một sản phẩm trước khi thanh toán.');
+    if (saving) return;
+
+    setCheckoutFeedback('');
+    setError('');
+
+    if (cart.length === 0) {
+      setCheckoutFeedback('Chưa có sản phẩm trong giỏ. Hãy chọn hàng ở cột bên trái.');
+      return;
+    }
+
+    if (safeDiscountPercent < 0 || safeDiscountPercent > 100) {
+      setCheckoutFeedback('Chiết khấu phải nằm trong khoảng 0–100%.');
       return;
     }
 
     if (paymentMethod === 'cash' && checkoutAmounts.receivedAmount < totals.total) {
-      setError('Tiền khách đưa chưa đủ. Chọn Công nợ nếu khách chưa thanh toán đủ.');
+      setCheckoutFeedback('Tiền khách đưa chưa đủ. Hãy nhập đủ tiền hoặc chọn Công nợ.');
       return;
     }
 
     if (paymentMethod === 'debt' && checkoutAmounts.receivedAmount > totals.total) {
-      setError('Số tiền thu trước không được lớn hơn tổng thanh toán.');
+      setCheckoutFeedback('Số tiền thu trước không được lớn hơn tổng thanh toán.');
       return;
     }
 
     try {
       setSaving(true);
-      setError('');
-      setStatus('Đang lưu hóa đơn...');
+      setCheckoutFeedback('Đang lưu hóa đơn vào SQLite...');
+      setStatus('');
       const sale = await createSale({
         customerId: selectedCustomerId || null,
         customerName,
@@ -374,13 +390,16 @@ export function POSPage() {
 
       setCompletedSale(sale);
       setCart([]);
+      setCheckoutFeedback('');
       setCustomers(await listCustomers());
       setSavedSales(await listRecentSales(100));
       setStatus(`Đã lưu ${sale.sale.invoice_code}.`);
     } catch (caught) {
       console.error(caught);
+      const message = checkoutFailureMessage(caught);
       setStatus('');
-      setError('Không lưu được hóa đơn. Kiểm tra tồn kho hoặc dữ liệu thanh toán.');
+      setError(message);
+      setCheckoutFeedback(message);
     } finally {
       setSaving(false);
     }
@@ -391,11 +410,12 @@ export function POSPage() {
     setCustomerName('');
     setCustomerPhone('');
     setNote('');
-    setDiscountAmount('0');
+    setDiscountPercent('0');
     setShippingFee('0');
     setPaymentMethod('cash');
     setCashReceived('');
     setDebtDeposit('0');
+    setCheckoutFeedback('');
   }
 
   function startNewSale() {
@@ -590,15 +610,15 @@ export function POSPage() {
                   <div className="pos-checkout-section">
                     <h3>Tính tiền</h3>
                     <div className="pos-two-fields">
-                      <TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} />
-                      <TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} />
+                      <TextField label="Chiết khấu (%)" type="number" min={0} max={100} step={1} value={discountPercent} onChange={(event) => { setDiscountPercent(event.target.value); setCheckoutFeedback(''); }} />
+                      <TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => { setShippingFee(event.target.value); setCheckoutFeedback(''); }} />
                     </div>
-                    <SelectField label="Phương thức" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} />
+                    <SelectField label="Phương thức" value={paymentMethod} options={paymentOptions} onChange={(event) => { setPaymentMethod(event.target.value as PaymentMethod); setCheckoutFeedback(''); }} />
                     {paymentMethod === 'cash' && (
-                      <TextField label="Khách đưa" type="number" min={0} value={cashReceived === '' ? totals.total : cashReceived} onChange={(event) => setCashReceived(event.target.value)} />
+                      <TextField label="Khách đưa" type="number" min={0} value={cashReceived === '' ? totals.total : cashReceived} onChange={(event) => { setCashReceived(event.target.value); setCheckoutFeedback(''); }} />
                     )}
                     {paymentMethod === 'debt' && (
-                      <TextField label="Đã thu trước" type="number" min={0} max={totals.total} value={debtDeposit} onChange={(event) => setDebtDeposit(event.target.value)} />
+                      <TextField label="Đã thu trước" type="number" min={0} max={totals.total} value={debtDeposit} onChange={(event) => { setDebtDeposit(event.target.value); setCheckoutFeedback(''); }} />
                     )}
                   </div>
                 </div>
@@ -606,7 +626,7 @@ export function POSPage() {
                 <div className="pos-checkout-footer">
                   <div className="pos-payment-breakdown">
                     <div><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div>
-                    <div><span>Chiết khấu</span><strong>-{formatCurrency(totals.discountAmount)}</strong></div>
+                    <div><span>Chiết khấu ({safeDiscountPercent}%)</span><strong>-{formatCurrency(totals.discountAmount)}</strong></div>
                     <div><span>Phí giao</span><strong>{formatCurrency(totals.shippingFee)}</strong></div>
                     <div className="is-total"><span>TỔNG THANH TOÁN</span><strong>{formatCurrency(totals.total)}</strong></div>
                     {paymentMethod === 'cash' && checkoutAmounts.returnedAmount > 0 && (
@@ -616,14 +636,21 @@ export function POSPage() {
                       <div className="is-debt"><span>Còn nợ</span><strong>{formatCurrency(checkoutAmounts.remainingAmount)}</strong></div>
                     )}
                   </div>
-                  <Button className="pos-primary-checkout" onClick={checkoutAndSave} disabled={cart.length === 0 || saving}>
+                  {checkoutFeedback && (
+                    <div className={`pos-checkout-feedback${saving ? ' is-progress' : ''}`} role="status" aria-live="polite">
+                      {checkoutFeedback}
+                    </div>
+                  )}
+                  <Button className="pos-primary-checkout" onClick={checkoutAndSave} disabled={saving}>
                     {saving
-                      ? 'ĐANG LƯU...'
-                      : paymentMethod === 'debt'
-                        ? `LƯU CÔNG NỢ • ${formatCurrency(totals.total)}`
-                        : `THANH TOÁN & LƯU • ${formatCurrency(totals.total)}`}
+                      ? 'ĐANG LƯU HÓA ĐƠN...'
+                      : cart.length === 0
+                        ? 'CHỌN HÀNG ĐỂ THANH TOÁN'
+                        : paymentMethod === 'debt'
+                          ? `LƯU CÔNG NỢ • ${formatCurrency(totals.total)}`
+                          : `THANH TOÁN & LƯU • ${formatCurrency(totals.total)}`}
                   </Button>
-                  <p className="pos-checkout-hint">Nút in chỉ xuất hiện sau khi hóa đơn được lưu thành công.</p>
+                  <p className="pos-checkout-hint">Sau khi lưu thành công, nút xem và in hóa đơn sẽ xuất hiện tại đây.</p>
                 </div>
               </SoftCard>
             )}
@@ -670,6 +697,20 @@ export function POSPage() {
       </Dialog>
     </>
   );
+}
+
+function clampPercentage(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, Math.round(value * 100) / 100));
+}
+
+function checkoutFailureMessage(error: unknown) {
+  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error);
+  const message = raw.toLowerCase();
+  if (message.includes('insufficient stock')) return 'Không đủ tồn kho cho một hoặc nhiều sản phẩm trong đơn.';
+  if (message.includes('sql.execute not allowed')) return 'Ứng dụng chưa có quyền ghi SQLite. Hãy cập nhật bản build mới nhất.';
+  if (message.includes('database is locked')) return 'SQLite đang bị khóa. Hãy đóng các phiên Bloomia khác rồi thử lại.';
+  return `Không lưu được hóa đơn: ${raw || 'Lỗi không xác định'}`;
 }
 
 function formatInvoiceDate(value?: string | null) {
