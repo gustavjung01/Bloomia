@@ -19,7 +19,8 @@ export async function printInvoiceHtml(
   copyCount = 1,
 ) {
   if (imageUrl?.trim()) {
-    openPrintWindow(markup);
+    const richMarkup = markup.replace('</body>', '<script>window.onload=()=>setTimeout(()=>window.print(),350)</script></body>');
+    openPrintWindow(richMarkup);
     return;
   }
 
