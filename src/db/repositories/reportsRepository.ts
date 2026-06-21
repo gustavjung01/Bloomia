@@ -40,12 +40,14 @@ export interface WasteReportRow {
   created_at: string;
 }
 
+const completedSaleFilter = "COALESCE(sale_status, 'completed') = 'completed'";
+
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const db = await getDatabase();
   const rows = await db.select<DashboardSummary>(
     `SELECT
-      COALESCE((SELECT SUM(total) FROM sales WHERE DATE(sale_date) = DATE('now', 'localtime')), 0) AS todayRevenue,
-      COALESCE((SELECT COUNT(*) FROM sales WHERE DATE(sale_date) = DATE('now', 'localtime')), 0) AS todayOrders,
+      COALESCE((SELECT SUM(total) FROM sales WHERE DATE(sale_date) = DATE('now', 'localtime') AND ${completedSaleFilter}), 0) AS todayRevenue,
+      COALESCE((SELECT COUNT(*) FROM sales WHERE DATE(sale_date) = DATE('now', 'localtime') AND ${completedSaleFilter}), 0) AS todayOrders,
       COALESCE((SELECT COUNT(*) FROM orders WHERE status NOT IN ('completed', 'cancelled')), 0) AS openFlowerOrders,
       COALESCE((SELECT COUNT(*) FROM orders WHERE DATE(delivery_at) = DATE('now', 'localtime') AND status NOT IN ('completed', 'cancelled')), 0) AS deliveryToday,
       COALESCE((
@@ -57,6 +59,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
           GROUP BY sale_id
         ) costs ON costs.sale_id = sales.id
         WHERE DATE(sales.sale_date) = DATE('now', 'localtime')
+          AND COALESCE(sales.sale_status, 'completed') = 'completed'
       ), 0) AS estimatedProfit,
       COALESCE((SELECT SUM(quantity_out * unit_cost) FROM stock_movements WHERE movement_type = 'waste' AND DATE(created_at) = DATE('now', 'localtime')), 0) AS wasteCost`,
   );
@@ -84,6 +87,7 @@ export async function getSalesReport(days = 30) {
       FROM sales
       LEFT JOIN sale_costs ON sale_costs.sale_id = sales.id
       WHERE DATE(sales.sale_date) >= DATE('now', ?)
+        AND COALESCE(sales.sale_status, 'completed') = 'completed'
       GROUP BY DATE(sales.sale_date)
       ORDER BY day DESC`,
     [`-${days} days`],
