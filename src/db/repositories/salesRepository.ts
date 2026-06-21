@@ -21,7 +21,20 @@ export interface SaleStockWarning {
   shortfallQuantity: number;
 }
 
+export interface PaymentQrSnapshotInput {
+  bankBin?: string;
+  bankCode?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  transferReference?: string;
+  qrAmount?: number;
+  qrImageUrl?: string;
+  transferConfirmedAt?: string | null;
+}
+
 export interface CreateSaleInput {
+  invoiceCode?: string;
   customerId?: string | null;
   customerName?: string;
   customerPhone?: string;
@@ -34,6 +47,7 @@ export interface CreateSaleInput {
   paidAmount: number;
   receivedAmount: number;
   returnedAmount: number;
+  paymentQr?: PaymentQrSnapshotInput | null;
   lines: SaleLineDraft[];
 }
 
@@ -71,6 +85,15 @@ export interface PaymentRecord {
   amount: number;
   received_amount: number;
   returned_amount: number;
+  bank_bin: string | null;
+  bank_code: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  account_name: string | null;
+  transfer_reference: string | null;
+  qr_amount: number;
+  qr_image_url: string | null;
+  transfer_confirmed_at: string | null;
   paid_at: string;
   note: string | null;
 }
@@ -98,11 +121,12 @@ export async function createSale(input: CreateSaleInput) {
 
   const db = await getDatabase();
   const saleId = createLocalId('sale');
-  const invoiceCode = createInvoiceCode();
+  const invoiceCode = cleanOptional(input.invoiceCode) ?? createSaleInvoiceCode();
   const paidAmount = Math.max(0, Math.min(input.total, Math.round(input.paidAmount)));
   const receivedAmount = Math.max(paidAmount, Math.round(input.receivedAmount));
   const returnedAmount = Math.max(0, Math.round(input.returnedAmount));
   const paymentStatus = paidAmount >= input.total ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
+  const qr = input.paymentQr;
 
   try {
     const selectedCustomerId = cleanOptional(input.customerId);
@@ -122,8 +146,16 @@ export async function createSale(input: CreateSaleInput) {
     }
 
     await db.execute(
-      'INSERT INTO payments (id, sale_id, method, amount, received_amount, returned_amount, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [createLocalId('payment'), saleId, input.paymentMethod, paidAmount, receivedAmount, returnedAmount, null],
+      `INSERT INTO payments (
+        id, sale_id, method, amount, received_amount, returned_amount,
+        bank_bin, bank_code, bank_name, account_number, account_name,
+        transfer_reference, qr_amount, qr_image_url, transfer_confirmed_at, note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        createLocalId('payment'), saleId, input.paymentMethod, paidAmount, receivedAmount, returnedAmount,
+        cleanOptional(qr?.bankBin), cleanOptional(qr?.bankCode), cleanOptional(qr?.bankName), cleanOptional(qr?.accountNumber), cleanOptional(qr?.accountName),
+        cleanOptional(qr?.transferReference), Math.max(0, Math.round(qr?.qrAmount ?? 0)), cleanOptional(qr?.qrImageUrl), cleanOptional(qr?.transferConfirmedAt), null,
+      ],
     );
   } catch (error) {
     try {
@@ -139,29 +171,18 @@ export async function createSale(input: CreateSaleInput) {
 
 export async function getSaleStockWarnings(lines: SaleLineDraft[]): Promise<SaleStockWarning[]> {
   const totals = new Map<string, { itemName: string; quantity: number }>();
-
   for (const line of lines) {
     if (!line.itemId || !(await isItemStockTracked(line.itemId))) continue;
     const current = totals.get(line.itemId);
-    totals.set(line.itemId, {
-      itemName: current?.itemName ?? line.itemName,
-      quantity: (current?.quantity ?? 0) + line.quantity,
-    });
+    totals.set(line.itemId, { itemName: current?.itemName ?? line.itemName, quantity: (current?.quantity ?? 0) + line.quantity });
   }
 
   const warnings: SaleStockWarning[] = [];
   for (const [itemId, item] of totals) {
     const availableQuantity = Number(await getItemStock(itemId));
     if (availableQuantity >= item.quantity) continue;
-    warnings.push({
-      itemId,
-      itemName: item.itemName,
-      requestedQuantity: item.quantity,
-      availableQuantity,
-      shortfallQuantity: Math.round((item.quantity - availableQuantity) * 100) / 100,
-    });
+    warnings.push({ itemId, itemName: item.itemName, requestedQuantity: item.quantity, availableQuantity, shortfallQuantity: Math.round((item.quantity - availableQuantity) * 100) / 100 });
   }
-
   return warnings;
 }
 
@@ -183,7 +204,6 @@ export async function listRecentSales(limit = 50) {
 export async function searchSales(query: string, limit = 80) {
   const cleanQuery = query.trim();
   if (!cleanQuery) return listRecentSales(limit);
-
   const db = await getDatabase();
   const pattern = `%${cleanQuery}%`;
   return db.select<SaleRecord>(
@@ -197,23 +217,23 @@ export async function searchSales(query: string, limit = 80) {
   );
 }
 
+export function createSaleInvoiceCode() {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const time = `${now.getHours()}`.padStart(2, '0') + `${now.getMinutes()}`.padStart(2, '0') + `${now.getSeconds()}`.padStart(2, '0');
+  return `BLM-${date}-${time}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
 async function cleanupFailedSale(saleId: string) {
   const db = await getDatabase();
   const movements = await db.select<SaleMovementCleanupRecord>(
-    `SELECT batch_id, quantity_out
-     FROM stock_movements
-     WHERE reference_type = 'sale' AND reference_id = ?`,
+    `SELECT batch_id, quantity_out FROM stock_movements WHERE reference_type = 'sale' AND reference_id = ?`,
     [saleId],
   );
-
   for (const movement of movements) {
     if (!movement.batch_id || movement.quantity_out <= 0) continue;
-    await db.execute(
-      'UPDATE purchase_batches SET remaining_quantity = remaining_quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [movement.quantity_out, movement.batch_id],
-    );
+    await db.execute('UPDATE purchase_batches SET remaining_quantity = remaining_quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [movement.quantity_out, movement.batch_id]);
   }
-
   await db.execute("DELETE FROM stock_movements WHERE reference_type = 'sale' AND reference_id = ?", [saleId]);
   await db.execute('DELETE FROM payments WHERE sale_id = ?', [saleId]);
   await db.execute('DELETE FROM sale_items WHERE sale_id = ?', [saleId]);
@@ -224,13 +244,7 @@ async function allocateLineCost(line: SaleLineDraft, saleId: string) {
   if (!line.itemId || !(await isItemStockTracked(line.itemId))) return line.costPrice ?? 0;
   const fallbackCost = Math.max(0, Math.round(line.costPrice ?? 0));
   const allocations = await allocateFifo(line.itemId, line.quantity, {
-    movementType: 'sale',
-    referenceType: 'sale',
-    referenceId: saleId,
-    reason: 'Bán hàng',
-    note: line.itemName,
-    allowShortfall: true,
-    shortfallUnitCost: fallbackCost,
+    movementType: 'sale', referenceType: 'sale', referenceId: saleId, reason: 'Bán hàng', note: line.itemName, allowShortfall: true, shortfallUnitCost: fallbackCost,
   });
   const totalCost = allocations.reduce((sum, allocation) => sum + allocation.quantity * allocation.unitCost, 0);
   return Math.round(totalCost / line.quantity);
@@ -254,13 +268,6 @@ async function createCustomerIfNeeded(name?: string, phone?: string) {
   const id = createLocalId('customer');
   await db.execute('INSERT INTO customers (id, name, phone) VALUES (?, ?, ?)', [id, cleanName ?? 'Khách lẻ', cleanPhone]);
   return id;
-}
-
-function createInvoiceCode() {
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const time = `${now.getHours()}`.padStart(2, '0') + `${now.getMinutes()}`.padStart(2, '0') + `${now.getSeconds()}`.padStart(2, '0');
-  return `BLM-${date}-${time}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 function cleanOptional(value?: string | null) {
