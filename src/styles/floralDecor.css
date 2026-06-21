@@ -99,7 +99,6 @@
 
 @media (max-width: 1180px), (max-height: 760px) {
   .page-content::after {
-    opacity: calc(var(--bloomia-floral-accent-opacity) * 0.72);
     width: min(var(--bloomia-floral-accent-size), 34vw);
   }
 }
