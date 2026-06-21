@@ -10,11 +10,13 @@ import { listRecipes, type HydratedRecipe } from '../../db/repositories/recipesR
 import {
   createSale,
   getSaleById,
+  getSaleStockWarnings,
   listRecentSales,
   searchSales,
   type HydratedSale,
   type PaymentMethod,
   type SaleRecord,
+  type SaleStockWarning,
 } from '../../db/repositories/salesRepository';
 import { dispatchAIEvent } from '../../services/ai/desktopAIService';
 import { calculateCartTotals, lineTotal, normalizeMoney, normalizeQuantity, type CartLine } from '../../services/pos/cart';
@@ -55,6 +57,7 @@ export function POSPage() {
   const [savedSales, setSavedSales] = useState<SaleRecord[]>([]);
   const [itemPhotoUrls, setItemPhotoUrls] = useState<Record<string, string>>({});
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [stockWarnings, setStockWarnings] = useState<SaleStockWarning[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -99,6 +102,30 @@ export function POSPage() {
       window.clearTimeout(timer);
     };
   }, [invoiceQuery, view]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      if (cart.length === 0) {
+        setStockWarnings([]);
+        return;
+      }
+
+      getSaleStockWarnings(toSaleLines(cart))
+        .then((warnings) => {
+          if (active) setStockWarnings(warnings);
+        })
+        .catch((caught) => {
+          console.warn('Could not check stock warnings', caught);
+          if (active) setStockWarnings([]);
+        });
+    }, 180);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [cart]);
 
   async function loadPosData() {
     try {
@@ -322,6 +349,7 @@ export function POSPage() {
   function clearCurrentSale() {
     if (cart.length > 0 && !window.confirm('Xóa toàn bộ đơn hiện tại?')) return;
     setCart([]);
+    setStockWarnings([]);
     setCompletedSale(null);
     resetCheckoutFields();
     setStatus('Đã làm trống đơn hiện tại.');
@@ -339,11 +367,6 @@ export function POSPage() {
       return;
     }
 
-    if (safeDiscountPercent < 0 || safeDiscountPercent > 100) {
-      setCheckoutFeedback('Chiết khấu phải nằm trong khoảng 0–100%.');
-      return;
-    }
-
     if (paymentMethod === 'cash' && checkoutAmounts.receivedAmount < totals.total) {
       setCheckoutFeedback('Tiền khách đưa chưa đủ. Hãy nhập đủ tiền hoặc chọn Công nợ.');
       return;
@@ -356,8 +379,11 @@ export function POSPage() {
 
     try {
       setSaving(true);
-      setCheckoutFeedback('Đang lưu hóa đơn vào SQLite...');
+      setCheckoutFeedback('Đang kiểm tra và lưu hóa đơn vào SQLite...');
       setStatus('');
+      const warningsAtCheckout = await getSaleStockWarnings(toSaleLines(cart));
+      setStockWarnings(warningsAtCheckout);
+
       const sale = await createSale({
         customerId: selectedCustomerId || null,
         customerName,
@@ -371,14 +397,7 @@ export function POSPage() {
         paidAmount: checkoutAmounts.paidAmount,
         receivedAmount: checkoutAmounts.receivedAmount,
         returnedAmount: checkoutAmounts.returnedAmount,
-        lines: cart.map((line) => ({
-          itemId: line.itemId,
-          itemName: line.itemName,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          costPrice: line.costPrice ?? 0,
-          note: line.note,
-        })),
+        lines: toSaleLines(cart),
       });
 
       void dispatchAIEvent(
@@ -390,10 +409,15 @@ export function POSPage() {
 
       setCompletedSale(sale);
       setCart([]);
+      setStockWarnings([]);
       setCheckoutFeedback('');
       setCustomers(await listCustomers());
       setSavedSales(await listRecentSales(100));
-      setStatus(`Đã lưu ${sale.sale.invoice_code}.`);
+      setStatus(
+        warningsAtCheckout.length > 0
+          ? `Đã lưu ${sale.sale.invoice_code}. Có ${warningsAtCheckout.length} cảnh báo bán vượt tồn.`
+          : `Đã lưu ${sale.sale.invoice_code}.`,
+      );
     } catch (caught) {
       console.error(caught);
       const message = checkoutFailureMessage(caught);
@@ -421,6 +445,7 @@ export function POSPage() {
   function startNewSale() {
     setCompletedSale(null);
     setCart([]);
+    setStockWarnings([]);
     resetCheckoutFields();
     setCatalogQuery('');
     setView('sale');
@@ -636,6 +661,21 @@ export function POSPage() {
                       <div className="is-debt"><span>Còn nợ</span><strong>{formatCurrency(checkoutAmounts.remainingAmount)}</strong></div>
                     )}
                   </div>
+
+                  {stockWarnings.length > 0 && (
+                    <div className="pos-stock-warning" role="note">
+                      <strong>Cảnh báo tồn kho — vẫn có thể bán</strong>
+                      <span>Hệ thống sẽ ghi nhận bán vượt tồn và tự cân lại khi nhập hàng sau.</span>
+                      <ul>
+                        {stockWarnings.map((warning) => (
+                          <li key={warning.itemId}>
+                            {warning.itemName}: cần {formatQuantity(warning.requestedQuantity)}, đang có {formatQuantity(warning.availableQuantity)}, thiếu {formatQuantity(warning.shortfallQuantity)}.
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {checkoutFeedback && (
                     <div className={`pos-checkout-feedback${saving ? ' is-progress' : ''}`} role="status" aria-live="polite">
                       {checkoutFeedback}
@@ -650,7 +690,7 @@ export function POSPage() {
                           ? `LƯU CÔNG NỢ • ${formatCurrency(totals.total)}`
                           : `THANH TOÁN & LƯU • ${formatCurrency(totals.total)}`}
                   </Button>
-                  <p className="pos-checkout-hint">Sau khi lưu thành công, nút xem và in hóa đơn sẽ xuất hiện tại đây.</p>
+                  <p className="pos-checkout-hint">Cảnh báo thiếu tồn không chặn bán. Sau khi lưu, nút xem và in hóa đơn sẽ xuất hiện tại đây.</p>
                 </div>
               </SoftCard>
             )}
@@ -699,6 +739,17 @@ export function POSPage() {
   );
 }
 
+function toSaleLines(cart: CartLine[]) {
+  return cart.map((line) => ({
+    itemId: line.itemId,
+    itemName: line.itemName,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    costPrice: line.costPrice ?? 0,
+    note: line.note,
+  }));
+}
+
 function clampPercentage(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(0, Math.round(value * 100) / 100));
@@ -707,10 +758,13 @@ function clampPercentage(value: number) {
 function checkoutFailureMessage(error: unknown) {
   const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error);
   const message = raw.toLowerCase();
-  if (message.includes('insufficient stock')) return 'Không đủ tồn kho cho một hoặc nhiều sản phẩm trong đơn.';
   if (message.includes('sql.execute not allowed')) return 'Ứng dụng chưa có quyền ghi SQLite. Hãy cập nhật bản build mới nhất.';
   if (message.includes('database is locked')) return 'SQLite đang bị khóa. Hãy đóng các phiên Bloomia khác rồi thử lại.';
   return `Không lưu được hóa đơn: ${raw || 'Lỗi không xác định'}`;
+}
+
+function formatQuantity(value: number) {
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(value);
 }
 
 function formatInvoiceDate(value?: string | null) {
