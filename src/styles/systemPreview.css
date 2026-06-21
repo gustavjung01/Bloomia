@@ -1,0 +1,111 @@
+.system-preview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.system-preview-card {
+  background: #fff;
+  border: 1px solid #e2dce0;
+  border-radius: 14px;
+  box-shadow: 0 7px 20px rgba(39, 32, 38, 0.055);
+  color: #2c272c;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 18px;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.system-preview-card:hover {
+  border-color: #c9829b;
+  box-shadow: 0 13px 28px rgba(39, 32, 38, 0.1);
+  transform: translateY(-2px);
+}
+
+.system-preview-card:focus-visible {
+  outline: 3px solid rgba(183, 70, 109, 0.14);
+  outline-offset: 2px;
+}
+
+.system-preview-topline,
+.system-preview-action {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.system-preview-eyebrow {
+  color: #9d3d5d;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.system-preview-copy {
+  margin: auto 0;
+  padding: 18px 0;
+}
+
+.system-preview-copy h3 {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+  margin-bottom: 7px;
+}
+
+.system-preview-copy p {
+  color: #7d747c;
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 48ch;
+}
+
+.system-preview-action {
+  border-top: 1px solid #eee9ec;
+  color: #6b6269;
+  font-size: 11px;
+  font-weight: 750;
+  padding-top: 12px;
+}
+
+.system-preview-action strong {
+  color: #b7466d;
+  font-size: 18px;
+}
+
+.system-modal-content {
+  max-height: calc(92vh - 72px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1px 3px 3px 1px;
+}
+
+.system-modal-content > .soft-card {
+  border: 0;
+  box-shadow: none;
+  grid-column: 1 / -1;
+  overflow: visible;
+  padding: 2px;
+}
+
+.system-runtime-modal > .page-title-row {
+  display: none;
+}
+
+.system-runtime-modal > .page-grid {
+  gap: 10px;
+}
+
+@media (max-width: 1080px) {
+  .system-preview-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, minmax(130px, 1fr));
+  }
+}
