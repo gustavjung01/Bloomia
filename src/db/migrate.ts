@@ -14,7 +14,6 @@ export async function runMigrations(db: QueryableDatabase) {
   for (const migration of allMigrations) {
     if (applied.has(migration.id)) continue;
 
-    await db.execute('BEGIN IMMEDIATE TRANSACTION');
     try {
       for (const statement of migration.statements) {
         try {
@@ -26,14 +25,8 @@ export async function runMigrations(db: QueryableDatabase) {
       }
 
       await db.execute('INSERT OR IGNORE INTO schema_migrations (id, description) VALUES (?, ?)', [migration.id, migration.description]);
-      await db.execute('COMMIT');
       applied.add(migration.id);
     } catch (error) {
-      try {
-        await db.execute('ROLLBACK');
-      } catch (rollbackError) {
-        console.error('Bloomia migration rollback failed', rollbackError);
-      }
       throw new Error(`Migration ${migration.id} failed: ${errorMessage(error)}`);
     }
   }
