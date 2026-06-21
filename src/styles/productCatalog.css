@@ -1,0 +1,142 @@
+.pos-standard-catalog {
+  overflow: hidden;
+}
+
+.pos-product-grid {
+  align-content: start;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  padding: 1px 3px 3px 1px;
+}
+
+.pos-product-card {
+  align-content: initial;
+  background: #fff;
+  border: 1px solid #e5dfe3;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(39, 32, 38, 0.045);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  min-height: 184px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  text-align: left;
+}
+
+.pos-product-card:hover {
+  border-color: #c9839b;
+  box-shadow: 0 9px 22px rgba(39, 32, 38, 0.1);
+  transform: translateY(-1px);
+}
+
+.pos-product-card > .pos-product-image,
+.pos-product-card > :not(.pos-product-image) {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.pos-product-image {
+  background: linear-gradient(145deg, #f6edf1, #f0ebf5);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  height: 104px;
+  max-width: none;
+  object-fit: cover;
+  width: 100%;
+}
+
+.pos-product-image-placeholder {
+  color: #b76b86;
+  font-size: 30px;
+}
+
+.pos-product-card .badge {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 3px 10px rgba(39, 32, 38, 0.08);
+  left: 8px;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  position: absolute;
+  text-overflow: ellipsis;
+  top: 8px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.pos-product-card strong {
+  color: #2c262c;
+  display: -webkit-box;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 10px 10px 4px;
+  min-height: 35px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pos-product-card span:last-child {
+  color: #9e3d5e;
+  font-size: 14px;
+  font-weight: 850;
+  margin: auto 10px 10px;
+}
+
+.pos-product-card::after {
+  background: #b7466d;
+  border-radius: 999px;
+  bottom: 12px;
+  content: '+';
+  color: #fff;
+  display: grid;
+  font-size: 14px;
+  font-weight: 800;
+  height: 24px;
+  place-items: center;
+  position: absolute;
+  right: 10px;
+  width: 24px;
+}
+
+.pos-recipe-card {
+  background: linear-gradient(150deg, #fff, #faf6f8);
+  justify-content: flex-end;
+  min-height: 154px;
+  padding-top: 38px;
+}
+
+.pos-recipe-card .badge {
+  position: absolute;
+}
+
+.pos-recipe-card strong {
+  font-size: 14px;
+  margin-top: auto;
+}
+
+.pos-recipe-card > span:not(.badge):not(:last-child) {
+  color: #817880;
+  font-size: 11px;
+  margin: 0 10px 4px;
+}
+
+@media (max-width: 1320px) {
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+  }
+
+  .pos-product-card {
+    min-height: 174px;
+  }
+
+  .pos-product-image {
+    height: 94px;
+  }
+}
