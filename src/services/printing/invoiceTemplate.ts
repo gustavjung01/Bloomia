@@ -40,7 +40,7 @@ export function renderInvoiceHtml(
         : sale.sale.payment_status === 'partial'
           ? 'THANH TOÁN MỘT PHẦN'
           : 'CÔNG NỢ';
-  const showTransferImage = Boolean(payment?.qr_image_url && (isPending || remainingAmount > 0));
+  const showTransferImage = Boolean(payment?.qr_image_url && (isPending || paymentMethod === 'bank_transfer' || remainingAmount > 0));
   const autoPrintScript = options.autoPrint === false ? '' : '<script>window.onload = () => setTimeout(() => window.print(), 150);</script>';
 
   return `<!doctype html>
@@ -107,7 +107,7 @@ export function renderInvoiceHtml(
       ${remainingAmount > 0 ? `<div class="row remaining"><span>Còn phải thu</span><span>${formatCurrency(remainingAmount)}</span></div>` : ''}
     </section>
 
-    ${showTransferImage ? `<section class="transfer-image"><strong>Quét mã để thanh toán</strong><img src="${escapeHtml(payment.qr_image_url ?? '')}" alt="Mã chuyển khoản" /><div class="muted">${escapeHtml(payment.bank_name ?? payment.bank_code ?? '')} • ${escapeHtml(payment.account_number ?? '')}</div><div class="muted">${escapeHtml(payment.account_name ?? '')}</div><div class="muted">Nội dung: ${escapeHtml(payment.transfer_reference ?? '')}</div></section>` : ''}
+    ${showTransferImage ? `<section class="transfer-image"><strong>${isPending ? 'Quét mã để thanh toán' : 'Thông tin chuyển khoản'}</strong><img src="${escapeHtml(payment.qr_image_url ?? '')}" alt="Mã chuyển khoản" /><div class="muted">${escapeHtml(payment.bank_name ?? payment.bank_code ?? '')} • ${escapeHtml(payment.account_number ?? '')}</div><div class="muted">${escapeHtml(payment.account_name ?? '')}</div><div class="muted">Nội dung: ${escapeHtml(payment.transfer_reference ?? '')}</div></section>` : ''}
 
     ${isPending ? '<section class="footer"><p>Phiếu này dùng để thanh toán, chưa phải hóa đơn đã thu tiền.</p></section>' : `<section class="footer"><p>${escapeHtml(shop?.invoice_footer ?? 'Cảm ơn quý khách đã ghé Bloomia.')}</p></section>`}
   </main>
