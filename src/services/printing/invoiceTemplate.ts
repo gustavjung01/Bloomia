@@ -23,6 +23,11 @@ export function renderInvoiceHtml(
   const paperSize = printer?.paper_size ?? '80mm';
   const width = paperSize === '58mm' ? '58mm' : paperSize === 'A4' ? '190mm' : '80mm';
   const paidAmount = sale.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const receivedAmount = sale.payments.reduce(
+    (sum, payment) => sum + (payment.received_amount > 0 ? payment.received_amount : payment.amount),
+    0,
+  );
+  const returnedAmount = sale.payments.reduce((sum, payment) => sum + (payment.returned_amount ?? 0), 0);
   const remainingAmount = Math.max(0, sale.sale.total - paidAmount);
   const paymentMethod = sale.payments[0]?.method;
   const autoPrintScript = options.autoPrint === false ? '' : '<script>window.onload = () => setTimeout(() => window.print(), 150);</script>';
@@ -88,9 +93,11 @@ export function renderInvoiceHtml(
       <div class="row"><span>Tạm tính</span><span>${formatCurrency(sale.sale.subtotal)}</span></div>
       <div class="row"><span>Chiết khấu</span><span>-${formatCurrency(sale.sale.discount_amount)}</span></div>
       <div class="row"><span>Phí giao</span><span>${formatCurrency(sale.sale.shipping_fee)}</span></div>
-      <div class="row total"><span>Tổng cộng</span><span>${formatCurrency(sale.sale.total)}</span></div>
-      <div class="row"><span>Thanh toán</span><span>${paymentMethod ? paymentLabels[paymentMethod] : 'Chưa rõ'}</span></div>
+      <div class="row total"><span>Tổng thanh toán</span><span>${formatCurrency(sale.sale.total)}</span></div>
+      <div class="row"><span>Phương thức</span><span>${paymentMethod ? paymentLabels[paymentMethod] : 'Chưa rõ'}</span></div>
       <div class="row"><span>Đã thu</span><span>${formatCurrency(paidAmount)}</span></div>
+      ${receivedAmount > paidAmount ? `<div class="row"><span>Khách đưa</span><span>${formatCurrency(receivedAmount)}</span></div>` : ''}
+      ${returnedAmount > 0 ? `<div class="row"><span>Tiền thừa</span><span>${formatCurrency(returnedAmount)}</span></div>` : ''}
       ${remainingAmount > 0 ? `<div class="row remaining"><span>Còn nợ</span><span>${formatCurrency(remainingAmount)}</span></div>` : ''}
     </section>
 
