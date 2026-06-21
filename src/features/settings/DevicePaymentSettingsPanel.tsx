@@ -8,6 +8,11 @@ import {
   type DevicePaymentSettings,
 } from '../../db/repositories/devicePaymentSettingsRepository';
 import {
+  getPrinterTestDiagnostics,
+  savePrinterTestDiagnostics,
+  type PrinterTestDiagnostics,
+} from '../../db/repositories/printerDiagnosticsRepository';
+import {
   getPrinterSettings,
   savePrinterSettings,
   type PaperSize,
@@ -33,6 +38,7 @@ export function DevicePaymentSettingsPanel() {
   const [printerName, setPrinterName] = useState('');
   const [paperSize, setPaperSize] = useState<PaperSize>('80mm');
   const [settings, setSettings] = useState<DevicePaymentSettings>(defaultDevicePaymentSettings);
+  const [lastTest, setLastTest] = useState<PrinterTestDiagnostics | null>(null);
   const [testAmount, setTestAmount] = useState('250000');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -55,18 +61,22 @@ export function DevicePaymentSettingsPanel() {
     [settings, testAmount],
   );
 
+  const selectedPrinterAvailable = !printerName || printers.includes(printerName);
+
   async function refresh() {
     try {
       setError('');
-      const [printerRows, printer, deviceSettings] = await Promise.all([
+      const [printerRows, printer, deviceSettings, testDiagnostics] = await Promise.all([
         listLocalPrinters(),
         getPrinterSettings(),
         getDevicePaymentSettings(),
+        getPrinterTestDiagnostics(),
       ]);
       setPrinters(printerRows);
       setPrinterName(printer?.printer_name ?? '');
       setPaperSize(printer?.paper_size ?? '80mm');
       setSettings(deviceSettings);
+      setLastTest(testDiagnostics);
       setMessage('Đã tải cấu hình thiết bị và thanh toán.');
     } catch (caught) {
       console.error(caught);
@@ -78,6 +88,10 @@ export function DevicePaymentSettingsPanel() {
     const qrError = validatePaymentQrSettings(settings);
     if (qrError) {
       setError(qrError);
+      return;
+    }
+    if (!selectedPrinterAvailable) {
+      setError('Máy in đã lưu không còn trong danh sách của hệ điều hành. Hãy chọn lại máy in.');
       return;
     }
 
@@ -97,14 +111,33 @@ export function DevicePaymentSettingsPanel() {
   }
 
   async function handleTestPrinter() {
+    const testedAt = new Date().toISOString();
+    const targetLabel = printerName || 'Máy in mặc định';
     try {
       setTestingPrinter(true);
       setError('');
       setMessage('Đang gửi bản in thử...');
       await testPrint(printerName, paperSize, preview?.imageUrl ?? null);
+      const result = await savePrinterTestDiagnostics({
+        testedAt,
+        printerName: targetLabel,
+        paperSize,
+        ok: true,
+        message: 'Đã gửi job in thử tới Windows spooler.',
+      });
+      setLastTest(result);
       setMessage('Đã gửi bản in thử tới máy in đã chọn.');
     } catch (caught) {
       console.error(caught);
+      const detail = caught instanceof Error ? caught.message : String(caught);
+      const result = await savePrinterTestDiagnostics({
+        testedAt,
+        printerName: targetLabel,
+        paperSize,
+        ok: false,
+        message: detail || 'Không gửi được job in thử.',
+      }).catch(() => null);
+      if (result) setLastTest(result);
       setMessage('');
       setError('Không in thử được. Kiểm tra máy in, driver và khổ giấy.');
     } finally {
@@ -123,6 +156,10 @@ export function DevicePaymentSettingsPanel() {
 
       <div className="page-grid">
         <SoftCard className="span-6" title="Máy in hóa đơn" description="Chọn máy in thật của hệ điều hành, lưu khổ giấy và gửi bản in kiểm tra.">
+          <div className="setup-status-row" style={{ marginBottom: 12 }}>
+            <Badge tone={selectedPrinterAvailable ? 'sage' : 'peach'}>{selectedPrinterAvailable ? 'Máy in khả dụng' : 'Máy in đã bị đổi/gỡ'}</Badge>
+            <Badge tone={lastTest?.ok ? 'sage' : lastTest ? 'peach' : 'lavender'}>{lastTest ? (lastTest.ok ? 'Test gần nhất đạt' : 'Test gần nhất lỗi') : 'Chưa test máy in'}</Badge>
+          </div>
           <div className="setup-form-grid">
             <SelectField label="Máy in" value={printerName} options={printerOptions} onChange={(event) => setPrinterName(event.target.value)} />
             <SelectField label="Khổ giấy" value={paperSize} options={paperOptions} onChange={(event) => setPaperSize(event.target.value as PaperSize)} />
@@ -130,6 +167,13 @@ export function DevicePaymentSettingsPanel() {
             <label className="setup-checkbox"><input type="checkbox" checked={settings.autoPrintAfterPayment} onChange={(event) => setSettings((current) => ({ ...current, autoPrintAfterPayment: event.target.checked }))} />Tự in sau khi thanh toán</label>
             <label className="setup-checkbox"><input type="checkbox" checked={settings.printLogo} onChange={(event) => setSettings((current) => ({ ...current, printLogo: event.target.checked }))} />In logo shop khi renderer hỗ trợ</label>
             <label className="setup-checkbox"><input type="checkbox" checked={settings.printQr} onChange={(event) => setSettings((current) => ({ ...current, printQr: event.target.checked }))} />In QR chuyển khoản trên hóa đơn</label>
+            {lastTest && (
+              <div className="system-info-list">
+                <div><span>Lần test gần nhất</span><strong>{new Date(lastTest.testedAt).toLocaleString('vi-VN')}</strong></div>
+                <div><span>Thiết bị / khổ giấy</span><strong>{lastTest.printerName} • {lastTest.paperSize}</strong></div>
+                <div><span>Kết quả</span><code>{lastTest.message}</code></div>
+              </div>
+            )}
             <div className="setup-row-actions">
               <Button variant="soft" onClick={refresh}>Làm mới danh sách</Button>
               <Button onClick={handleTestPrinter} disabled={testingPrinter}>{testingPrinter ? 'Đang in thử...' : 'In thử máy đã chọn'}</Button>
