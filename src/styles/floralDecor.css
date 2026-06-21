@@ -1,0 +1,112 @@
+.page-content {
+  --bloomia-floral-accent-opacity: 0.09;
+  --bloomia-floral-accent-size: 430px;
+  --bloomia-floral-accent-right: -56px;
+  --bloomia-floral-accent-bottom: -48px;
+  isolation: isolate;
+  position: relative;
+}
+
+.page-content::before,
+.page-content::after {
+  content: '';
+  display: block;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+/* image-1.png: global pastel wash shared by every workspace. */
+.page-content::before {
+  background-image:
+    radial-gradient(circle at 84% 16%, rgba(223, 142, 170, 0.12), transparent 31%),
+    radial-gradient(circle at 12% 88%, rgba(248, 228, 215, 0.14), transparent 28%),
+    url('../../image-1.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(2px) saturate(0.58) brightness(1.12);
+  inset: -8px;
+  mix-blend-mode: screen;
+  opacity: 0.055;
+  transform: scale(1.025);
+}
+
+/* image-2.png: crop the floral line-art area as the route accent. */
+.page-content::after {
+  aspect-ratio: 1.55;
+  background-image: url('../../image-2.png');
+  background-position: 100% 1%;
+  background-repeat: no-repeat;
+  background-size: 235% auto;
+  bottom: var(--bloomia-floral-accent-bottom);
+  filter: saturate(0.72) contrast(0.9);
+  mask-image: radial-gradient(ellipse at 58% 56%, #000 34%, rgba(0, 0, 0, 0.72) 57%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at 58% 56%, #000 34%, rgba(0, 0, 0, 0.72) 57%, transparent 78%);
+  mix-blend-mode: multiply;
+  opacity: var(--bloomia-floral-accent-opacity);
+  right: var(--bloomia-floral-accent-right);
+  width: min(var(--bloomia-floral-accent-size), 38vw);
+}
+
+.page-workspace {
+  position: relative;
+  z-index: 1;
+}
+
+.page-content[data-route='dashboard'] {
+  --bloomia-floral-accent-opacity: 0.105;
+  --bloomia-floral-accent-size: 470px;
+}
+
+.page-content[data-route='sales'] {
+  --bloomia-floral-accent-opacity: 0.14;
+  --bloomia-floral-accent-size: 510px;
+  --bloomia-floral-accent-right: -72px;
+  --bloomia-floral-accent-bottom: -62px;
+}
+
+.page-content[data-route='flowerOrders'] {
+  --bloomia-floral-accent-opacity: 0.115;
+  --bloomia-floral-accent-size: 460px;
+}
+
+.page-content[data-route='customers'],
+.page-content[data-route='recipes'] {
+  --bloomia-floral-accent-opacity: 0.085;
+  --bloomia-floral-accent-size: 420px;
+}
+
+.page-content[data-route='inventory'],
+.page-content[data-route='purchase'] {
+  --bloomia-floral-accent-opacity: 0.045;
+  --bloomia-floral-accent-size: 380px;
+}
+
+.page-content[data-route='reports']::after,
+.page-content[data-route='settings']::after,
+.page-content[data-route='system']::after,
+.page-content[data-route='update']::after {
+  display: none;
+}
+
+.page-content[data-route='reports']::before,
+.page-content[data-route='settings']::before,
+.page-content[data-route='system']::before,
+.page-content[data-route='update']::before {
+  opacity: 0.028;
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .page-content::after {
+    opacity: calc(var(--bloomia-floral-accent-opacity) * 0.72);
+    width: min(var(--bloomia-floral-accent-size), 34vw);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .page-content::before,
+  .page-content::after {
+    display: none;
+  }
+}
