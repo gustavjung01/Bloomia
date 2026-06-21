@@ -61,9 +61,30 @@ export async function saveDevicePaymentSettings(settings: DevicePaymentSettings)
     accountName: settings.accountName.trim(),
     transferContentTemplate: settings.transferContentTemplate.trim() || defaultDevicePaymentSettings.transferContentTemplate,
   };
+
   await db.execute(
     'INSERT OR REPLACE INTO settings (key, value_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
     [KEY, JSON.stringify(normalized)],
   );
-  return normalized;
+
+  const persisted = await getDevicePaymentSettings();
+  const criticalKeys: (keyof DevicePaymentSettings)[] = [
+    'qrEnabled',
+    'bankBin',
+    'bankCode',
+    'bankName',
+    'accountNumber',
+    'accountName',
+    'transferContentTemplate',
+    'showQrAtCheckout',
+    'showQrOnInvoice',
+    'printQr',
+    'qrSize',
+  ];
+  const mismatch = criticalKeys.find((key) => persisted[key] !== normalized[key]);
+  if (mismatch) {
+    throw new Error(`Cấu hình QR chưa được lưu đúng trường ${String(mismatch)}.`);
+  }
+
+  return persisted;
 }
