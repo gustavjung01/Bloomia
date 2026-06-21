@@ -79,6 +79,26 @@ export async function runP0ReadinessAudit(): Promise<P0ReadinessReport> {
     checks.push({ id: 'payment-schema', label: 'Cấu trúc bảng payment', status: 'fail', detail: errorText(error) });
   }
 
+  const probeKey = `p0_write_probe_${Date.now()}`;
+  try {
+    await db.execute(
+      'INSERT INTO settings (key, value_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+      [probeKey, JSON.stringify({ checkedAt: new Date().toISOString() })],
+    );
+    const rows = await db.select<{ value_json: string }>('SELECT value_json FROM settings WHERE key = ? LIMIT 1', [probeKey]);
+    if (!rows[0]?.value_json) throw new Error('Đã ghi nhưng không đọc lại được dữ liệu kiểm tra.');
+    await db.execute('DELETE FROM settings WHERE key = ?', [probeKey]);
+    checks.push({
+      id: 'sqlite-write',
+      label: 'Quyền ghi SQLite',
+      status: 'pass',
+      detail: 'Đã ghi, đọc lại và xóa dữ liệu kiểm tra thành công.',
+    });
+  } catch (error) {
+    await db.execute('DELETE FROM settings WHERE key = ?', [probeKey]).catch(() => undefined);
+    checks.push({ id: 'sqlite-write', label: 'Quyền ghi SQLite', status: 'fail', detail: errorText(error) });
+  }
+
   const [deviceSettings, printerSettings, printers, lastTest] = await Promise.all([
     getDevicePaymentSettings(),
     getPrinterSettings(),
