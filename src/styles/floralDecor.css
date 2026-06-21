@@ -1,8 +1,8 @@
+@import './workflowPreview.css';
+
 .page-content {
-  --bloomia-floral-accent-opacity: 0.09;
-  --bloomia-floral-accent-size: 430px;
-  --bloomia-floral-accent-right: -56px;
-  --bloomia-floral-accent-bottom: -48px;
+  --bloomia-floral-opacity: 0.14;
+  --bloomia-floral-size: 310px;
   isolation: isolate;
   position: relative;
 }
@@ -13,40 +13,29 @@
   display: block;
   pointer-events: none;
   position: absolute;
+  user-select: none;
   z-index: 0;
 }
 
-/* image-1.png: global pastel wash shared by every workspace. */
+/* Use the real transparent botanical asset; the two root PNG files are composite previews. */
 .page-content::before {
-  background-image:
-    radial-gradient(circle at 84% 16%, rgba(223, 142, 170, 0.12), transparent 31%),
-    radial-gradient(circle at 12% 88%, rgba(248, 228, 215, 0.14), transparent 28%),
-    url('../../image-1.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  filter: blur(2px) saturate(0.58) brightness(1.12);
-  inset: -8px;
-  mix-blend-mode: screen;
-  opacity: 0.055;
-  transform: scale(1.025);
+  background:
+    url('../assets/botanical-corner.svg') top right / var(--bloomia-floral-size) auto no-repeat,
+    radial-gradient(circle at 88% 12%, rgba(223, 142, 170, 0.12), transparent 30%),
+    radial-gradient(circle at 12% 92%, rgba(248, 228, 215, 0.1), transparent 28%);
+  filter: saturate(0.82);
+  inset: 0;
+  opacity: var(--bloomia-floral-opacity);
 }
 
-/* image-2.png: crop the floral line-art area as the route accent. */
 .page-content::after {
-  aspect-ratio: 1.55;
-  background-image: url('../../image-2.png');
-  background-position: 100% 1%;
-  background-repeat: no-repeat;
-  background-size: 235% auto;
-  bottom: var(--bloomia-floral-accent-bottom);
-  filter: saturate(0.72) contrast(0.9);
-  mask-image: radial-gradient(ellipse at 58% 56%, #000 34%, rgba(0, 0, 0, 0.72) 57%, transparent 78%);
-  -webkit-mask-image: radial-gradient(ellipse at 58% 56%, #000 34%, rgba(0, 0, 0, 0.72) 57%, transparent 78%);
-  mix-blend-mode: multiply;
-  opacity: var(--bloomia-floral-accent-opacity);
-  right: var(--bloomia-floral-accent-right);
-  width: min(var(--bloomia-floral-accent-size), 38vw);
+  background: url('../assets/botanical-corner.svg') center / contain no-repeat;
+  bottom: -52px;
+  height: 210px;
+  left: -54px;
+  opacity: calc(var(--bloomia-floral-opacity) * 0.62);
+  transform: rotate(178deg);
+  width: 190px;
 }
 
 .page-workspace {
@@ -55,51 +44,51 @@
 }
 
 .page-content[data-route='dashboard'] {
-  --bloomia-floral-accent-opacity: 0.105;
-  --bloomia-floral-accent-size: 470px;
+  --bloomia-floral-opacity: 0.18;
+  --bloomia-floral-size: 340px;
 }
 
 .page-content[data-route='sales'] {
-  --bloomia-floral-accent-opacity: 0.14;
-  --bloomia-floral-accent-size: 510px;
-  --bloomia-floral-accent-right: -72px;
-  --bloomia-floral-accent-bottom: -62px;
+  --bloomia-floral-opacity: 0.21;
+  --bloomia-floral-size: 380px;
 }
 
 .page-content[data-route='flowerOrders'] {
-  --bloomia-floral-accent-opacity: 0.115;
-  --bloomia-floral-accent-size: 460px;
+  --bloomia-floral-opacity: 0.18;
+  --bloomia-floral-size: 350px;
 }
 
 .page-content[data-route='customers'],
 .page-content[data-route='recipes'] {
-  --bloomia-floral-accent-opacity: 0.085;
-  --bloomia-floral-accent-size: 420px;
+  --bloomia-floral-opacity: 0.14;
+  --bloomia-floral-size: 310px;
 }
 
 .page-content[data-route='inventory'],
 .page-content[data-route='purchase'] {
-  --bloomia-floral-accent-opacity: 0.045;
-  --bloomia-floral-accent-size: 380px;
+  --bloomia-floral-opacity: 0.1;
+  --bloomia-floral-size: 285px;
 }
 
+.page-content[data-route='reports']::before,
 .page-content[data-route='reports']::after,
+.page-content[data-route='settings']::before,
 .page-content[data-route='settings']::after,
+.page-content[data-route='system']::before,
 .page-content[data-route='system']::after,
+.page-content[data-route='update']::before,
 .page-content[data-route='update']::after {
   display: none;
 }
 
-.page-content[data-route='reports']::before,
-.page-content[data-route='settings']::before,
-.page-content[data-route='system']::before,
-.page-content[data-route='update']::before {
-  opacity: 0.028;
-}
-
 @media (max-width: 1180px), (max-height: 760px) {
+  .page-content {
+    --bloomia-floral-size: 250px;
+  }
+
   .page-content::after {
-    width: min(var(--bloomia-floral-accent-size), 34vw);
+    height: 160px;
+    width: 145px;
   }
 }
 
