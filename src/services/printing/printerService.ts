@@ -15,15 +15,9 @@ export async function printInvoiceHtml(
   markup: string,
   printerName?: string | null,
   paperSize: PaperSize = '80mm',
-  imageUrl?: string | null,
+  _imageUrl?: string | null,
   copyCount = 1,
 ) {
-  if (imageUrl?.trim()) {
-    const richMarkup = markup.replace('</body>', '<script>window.onload=()=>setTimeout(()=>window.print(),350)</script></body>');
-    openPrintWindow(richMarkup);
-    return;
-  }
-
   const copies = Math.min(5, Math.max(1, Math.round(copyCount || 1)));
   for (let index = 0; index < copies; index += 1) {
     await invoke('print_invoice_html', {
