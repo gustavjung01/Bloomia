@@ -19,6 +19,7 @@ import {
   verifyBloomiaLicense,
   type BloomiaMachineIdentity,
 } from './services/licenseService';
+import { checkBloomiaUpdate } from './services/update/updateService';
 
 type LicenseStage = 'checking' | 'activation' | 'active' | 'offline_grace';
 
@@ -31,6 +32,13 @@ export function App() {
   const [machineIdentity, setMachineIdentity] = useState<BloomiaMachineIdentity | null>(null);
   const [licenseMessage, setLicenseMessage] = useState('');
   const [licenseBusy, setLicenseBusy] = useState(false);
+  const [startupUpdateNotice, setStartupUpdateNotice] = useState('');
+
+  useEffect(() => {
+    const activationVisible = licenseStage === 'checking' || licenseStage === 'activation';
+    document.body.classList.toggle('bloomia-license-mode', activationVisible);
+    return () => document.body.classList.remove('bloomia-license-mode');
+  }, [licenseStage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,6 +121,28 @@ export function App() {
     };
   }, [bootstrapAttempt, licenseStage]);
 
+  useEffect(() => {
+    if (licenseStage !== 'active') return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void checkBloomiaUpdate()
+        .then((update) => {
+          if (!cancelled && update.available) {
+            setStartupUpdateNotice(`Có bản Bloomia ${update.version}. Mở tab Cập nhật để tải và cài an toàn.`);
+          }
+        })
+        .catch(() => {
+          // Update checks never block app startup or license activation.
+        });
+    }, 1800);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [licenseStage]);
+
   const route = useMemo(() => routes.find((item) => item.key === activeRoute) ?? routes[0], [activeRoute]);
   const Page = route.component;
 
@@ -157,6 +187,12 @@ export function App() {
         <div className="license-offline-notice">
           Bloomia đang dùng giấy phép ngoại tuyến có chữ ký. Hãy kết nối Internet trước khi thời gian dự phòng kết thúc.
         </div>
+      )}
+      {startupUpdateNotice && (
+        <button className="startup-update-notice" type="button" onClick={() => setActiveRoute('update')}>
+          <span aria-hidden="true">↻</span>
+          <span>{startupUpdateNotice}</span>
+        </button>
       )}
       {databaseStatus === 'ready' && <Page />}
       {databaseStatus === 'idle' && (
