@@ -13,6 +13,14 @@ export interface SaleLineDraft {
   note?: string;
 }
 
+export interface SaleStockWarning {
+  itemId: string;
+  itemName: string;
+  requestedQuantity: number;
+  availableQuantity: number;
+  shortfallQuantity: number;
+}
+
 export interface CreateSaleInput {
   customerId?: string | null;
   customerName?: string;
@@ -82,7 +90,6 @@ LEFT JOIN customers ON customers.id = sales.customer_id`;
 
 export async function createSale(input: CreateSaleInput) {
   if (input.lines.length === 0) throw new Error('Sale needs line items.');
-  await assertStock(input.lines);
 
   const db = await getDatabase();
   const saleId = createLocalId('sale');
@@ -123,6 +130,34 @@ export async function createSale(input: CreateSaleInput) {
   return getSaleById(saleId);
 }
 
+export async function getSaleStockWarnings(lines: SaleLineDraft[]): Promise<SaleStockWarning[]> {
+  const totals = new Map<string, { itemName: string; quantity: number }>();
+
+  for (const line of lines) {
+    if (!line.itemId || !(await isItemStockTracked(line.itemId))) continue;
+    const current = totals.get(line.itemId);
+    totals.set(line.itemId, {
+      itemName: current?.itemName ?? line.itemName,
+      quantity: (current?.quantity ?? 0) + line.quantity,
+    });
+  }
+
+  const warnings: SaleStockWarning[] = [];
+  for (const [itemId, item] of totals) {
+    const availableQuantity = Number(await getItemStock(itemId));
+    if (availableQuantity >= item.quantity) continue;
+    warnings.push({
+      itemId,
+      itemName: item.itemName,
+      requestedQuantity: item.quantity,
+      availableQuantity,
+      shortfallQuantity: Math.round((item.quantity - availableQuantity) * 100) / 100,
+    });
+  }
+
+  return warnings;
+}
+
 export async function getSaleById(id: string): Promise<HydratedSale> {
   const db = await getDatabase();
   const saleRows = await db.select<SaleRecord>(`${saleListSelect} WHERE sales.id = ? LIMIT 1`, [id]);
@@ -155,21 +190,18 @@ export async function searchSales(query: string, limit = 80) {
   );
 }
 
-async function assertStock(lines: SaleLineDraft[]) {
-  const totals = new Map<string, number>();
-  for (const line of lines) {
-    if (!line.itemId) continue;
-    if (!(await isItemStockTracked(line.itemId))) continue;
-    totals.set(line.itemId, (totals.get(line.itemId) ?? 0) + line.quantity);
-  }
-  for (const [itemId, quantity] of totals) {
-    if ((await getItemStock(itemId)) < quantity) throw new Error('Insufficient stock.');
-  }
-}
-
 async function allocateLineCost(line: SaleLineDraft, saleId: string) {
   if (!line.itemId || !(await isItemStockTracked(line.itemId))) return line.costPrice ?? 0;
-  const allocations = await allocateFifo(line.itemId, line.quantity, { movementType: 'sale', referenceType: 'sale', referenceId: saleId, reason: 'Bán hàng', note: line.itemName });
+  const fallbackCost = Math.max(0, Math.round(line.costPrice ?? 0));
+  const allocations = await allocateFifo(line.itemId, line.quantity, {
+    movementType: 'sale',
+    referenceType: 'sale',
+    referenceId: saleId,
+    reason: 'Bán hàng',
+    note: line.itemName,
+    allowShortfall: true,
+    shortfallUnitCost: fallbackCost,
+  });
   const totalCost = allocations.reduce((sum, allocation) => sum + allocation.quantity * allocation.unitCost, 0);
   return Math.round(totalCost / line.quantity);
 }
