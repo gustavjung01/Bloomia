@@ -36,14 +36,8 @@ export async function printInvoiceHtml(
 export async function testPrint(
   printerName?: string | null,
   paperSize: PaperSize = '80mm',
-  imageUrl?: string | null,
+  _imageUrl?: string | null,
 ) {
-  if (imageUrl?.trim()) {
-    const markup = `<!doctype html><html><head><meta charset="utf-8"><title>Bloomia test</title><style>body{font-family:Arial;text-align:center;padding:24px}img{max-width:280px;width:100%}</style></head><body><h2>Bloomia — kiểm tra máy in</h2><p>Tiếng Việt: Hoa hồng, hóa đơn, chiết khấu</p><img src="${imageUrl}" alt="Mã kiểm tra"><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`;
-    openPrintWindow(markup);
-    return;
-  }
-
   await invoke('test_print', {
     printerName: printerName?.trim() ? printerName.trim() : null,
     paperSize,
