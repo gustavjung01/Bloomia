@@ -24,18 +24,24 @@ import { resolveMediaUrl } from '../../services/system/systemService';
 import { formatCurrency } from '../../utils/format';
 import { createLocalId } from '../../utils/id';
 
-type CatalogTab = 'items' | 'recipes';
+type PosView = 'sale' | 'invoices';
+type CatalogView = 'items' | 'recipes';
 
-const catalogTabs = [
+const posViews = [
+  { label: 'Bán hàng', value: 'sale' },
+  { label: 'Hóa đơn', value: 'invoices' },
+] as const;
+
+const catalogViews = [
   { label: 'Sản phẩm & dịch vụ', value: 'items' },
   { label: 'Mẫu hoa', value: 'recipes' },
 ] as const;
 
 const paymentOptions = [
-  { label: 'Tiền mặt — thu đủ', value: 'cash' },
-  { label: 'Chuyển khoản — thu đủ', value: 'bank_transfer' },
-  { label: 'Thẻ — thu đủ', value: 'card' },
-  { label: 'Công nợ — chưa thu', value: 'debt' },
+  { label: 'Tiền mặt', value: 'cash' },
+  { label: 'Chuyển khoản', value: 'bank_transfer' },
+  { label: 'Thẻ', value: 'card' },
+  { label: 'Công nợ', value: 'debt' },
 ];
 
 const paymentLabels: Record<PaymentMethod, string> = {
@@ -46,7 +52,8 @@ const paymentLabels: Record<PaymentMethod, string> = {
 };
 
 export function POSPage() {
-  const [catalogTab, setCatalogTab] = useState<CatalogTab>('items');
+  const [view, setView] = useState<PosView>('sale');
+  const [catalogView, setCatalogView] = useState<CatalogView>('items');
   const [catalogQuery, setCatalogQuery] = useState('');
   const [invoiceQuery, setInvoiceQuery] = useState('');
   const [items, setItems] = useState<ItemRecord[]>([]);
@@ -62,27 +69,28 @@ export function POSPage() {
   const [discountAmount, setDiscountAmount] = useState('0');
   const [shippingFee, setShippingFee] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [cashReceived, setCashReceived] = useState('');
+  const [debtDeposit, setDebtDeposit] = useState('0');
   const [customName, setCustomName] = useState('Bó hoa tùy chỉnh');
   const [customPrice, setCustomPrice] = useState('500000');
   const [shop, setShop] = useState<ShopSettingsRecord | null>(null);
-  const [lastSale, setLastSale] = useState<HydratedSale | null>(null);
+  const [completedSale, setCompletedSale] = useState<HydratedSale | null>(null);
   const [previewSale, setPreviewSale] = useState<HydratedSale | null>(null);
   const [previewMarkup, setPreviewMarkup] = useState('');
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [successOpen, setSuccessOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    void loadCatalog();
+    void loadPosData();
   }, []);
 
   useEffect(() => {
+    if (view !== 'invoices') return;
     let active = true;
     const timer = window.setTimeout(() => {
-      searchSales(invoiceQuery, 80)
+      searchSales(invoiceQuery, 100)
         .then((rows) => {
           if (active) setSavedSales(rows);
         })
@@ -96,9 +104,9 @@ export function POSPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [invoiceQuery]);
+  }, [invoiceQuery, view]);
 
-  async function loadCatalog() {
+  async function loadPosData() {
     try {
       setError('');
       const [itemRows, recipeRows, shopRecord, photoMap, customerRows, saleRows] = await Promise.all([
@@ -107,7 +115,7 @@ export function POSPage() {
         getShopSettings(),
         loadPhotoMap(),
         listCustomers(),
-        listRecentSales(50),
+        listRecentSales(100),
       ]);
 
       setItems(itemRows);
@@ -132,20 +140,56 @@ export function POSPage() {
     return items.filter((item) => {
       if (!item.is_active || item.default_sale_price < 0) return false;
       if (!query) return true;
-      return [item.name, item.sku ?? '', item.category_name ?? ''].some((value) => value.toLocaleLowerCase('vi-VN').includes(query));
+      return [item.name, item.sku ?? '', item.category_name ?? ''].some((value) =>
+        value.toLocaleLowerCase('vi-VN').includes(query),
+      );
     });
   }, [items, catalogQuery]);
 
   const visibleRecipes = useMemo(() => {
     const query = catalogQuery.trim().toLocaleLowerCase('vi-VN');
     if (!query) return recipes;
-    return recipes.filter((recipe) => [recipe.name, recipe.color_tone ?? '', recipe.occasion ?? ''].some((value) => value.toLocaleLowerCase('vi-VN').includes(query)));
+    return recipes.filter((recipe) =>
+      [recipe.name, recipe.color_tone ?? '', recipe.occasion ?? ''].some((value) =>
+        value.toLocaleLowerCase('vi-VN').includes(query),
+      ),
+    );
   }, [recipes, catalogQuery]);
 
   const totals = useMemo(
     () => calculateCartTotals(cart, Number(discountAmount), Number(shippingFee)),
     [cart, discountAmount, shippingFee],
   );
+
+  const checkoutAmounts = useMemo(() => {
+    if (paymentMethod === 'bank_transfer' || paymentMethod === 'card') {
+      return {
+        paidAmount: totals.total,
+        receivedAmount: totals.total,
+        returnedAmount: 0,
+        remainingAmount: 0,
+      };
+    }
+
+    if (paymentMethod === 'cash') {
+      const receivedAmount = cashReceived === '' ? totals.total : normalizeMoney(Number(cashReceived));
+      return {
+        paidAmount: Math.min(totals.total, receivedAmount),
+        receivedAmount,
+        returnedAmount: Math.max(0, receivedAmount - totals.total),
+        remainingAmount: Math.max(0, totals.total - receivedAmount),
+      };
+    }
+
+    const receivedAmount = normalizeMoney(Number(debtDeposit));
+    const paidAmount = Math.min(totals.total, receivedAmount);
+    return {
+      paidAmount,
+      receivedAmount,
+      returnedAmount: 0,
+      remainingAmount: Math.max(0, totals.total - paidAmount),
+    };
+  }, [cashReceived, debtDeposit, paymentMethod, totals.total]);
 
   const cartQuantity = useMemo(() => cart.reduce((sum, line) => sum + line.quantity, 0), [cart]);
   const customerOptions = useMemo(
@@ -174,6 +218,7 @@ export function POSPage() {
   }
 
   function addCatalogItem(item: ItemRecord) {
+    setCompletedSale(null);
     setCart((current) => {
       const existing = current.find((line) => line.itemId === item.id && !line.isCustom);
       if (existing) {
@@ -195,14 +240,14 @@ export function POSPage() {
         },
       ];
     });
-    setStatus(`Đã thêm ${item.name} vào đơn.`);
+    setStatus(`Đã thêm ${item.name}.`);
     setError('');
   }
 
   function addRecipe(recipe: HydratedRecipe) {
-    const groupId = createLocalId('recipe-cart');
+    setCompletedSale(null);
     const parentLine: CartLine = {
-      id: groupId,
+      id: createLocalId('recipe-cart'),
       itemId: null,
       itemName: recipe.name,
       quantity: 1,
@@ -232,6 +277,7 @@ export function POSPage() {
       return;
     }
 
+    setCompletedSale(null);
     setCart((current) => [
       ...current,
       {
@@ -244,7 +290,7 @@ export function POSPage() {
         isCustom: true,
       },
     ]);
-    setStatus(`Đã thêm ${customName.trim()} vào đơn.`);
+    setStatus(`Đã thêm ${customName.trim()}.`);
     setError('');
   }
 
@@ -267,23 +313,35 @@ export function POSPage() {
     setCart((current) => current.filter((line) => line.id !== id));
   }
 
-  function openCheckout() {
-    if (cart.length === 0) {
-      setError('Chọn ít nhất một sản phẩm hoặc dịch vụ trước khi thanh toán.');
-      return;
-    }
+  function clearCurrentSale() {
+    if (cart.length > 0 && !window.confirm('Xóa toàn bộ đơn hiện tại?')) return;
+    setCart([]);
+    setCompletedSale(null);
+    resetCheckoutFields();
+    setStatus('Đã làm trống đơn hiện tại.');
     setError('');
-    setCheckoutOpen(true);
   }
 
-  async function saveSale() {
-    if (cart.length === 0 || saving) return;
+  async function checkoutAndSave() {
+    if (cart.length === 0 || saving) {
+      setError('Chọn ít nhất một sản phẩm trước khi thanh toán.');
+      return;
+    }
+
+    if (paymentMethod === 'cash' && checkoutAmounts.receivedAmount < totals.total) {
+      setError('Tiền khách đưa chưa đủ. Chọn Công nợ nếu khách chưa thanh toán đủ.');
+      return;
+    }
+
+    if (paymentMethod === 'debt' && checkoutAmounts.receivedAmount > totals.total) {
+      setError('Số tiền thu trước không được lớn hơn tổng thanh toán.');
+      return;
+    }
 
     try {
       setSaving(true);
       setError('');
       setStatus('Đang lưu hóa đơn...');
-      const paidAmount = paymentMethod === 'debt' ? 0 : totals.total;
       const sale = await createSale({
         customerId: selectedCustomerId || null,
         customerName,
@@ -294,7 +352,9 @@ export function POSPage() {
         shippingFee: totals.shippingFee,
         total: totals.total,
         paymentMethod,
-        paidAmount,
+        paidAmount: checkoutAmounts.paidAmount,
+        receivedAmount: checkoutAmounts.receivedAmount,
+        returnedAmount: checkoutAmounts.returnedAmount,
         lines: cart.map((line) => ({
           itemId: line.itemId,
           itemName: line.itemName,
@@ -312,14 +372,11 @@ export function POSPage() {
         { saleId: sale.sale.id, invoiceCode: sale.sale.invoice_code, total: sale.sale.total },
       ).catch((eventError) => console.warn('AI event dispatch failed', eventError));
 
-      setLastSale(sale);
+      setCompletedSale(sale);
       setCart([]);
-      resetCheckoutFields();
       setCustomers(await listCustomers());
-      setSavedSales(await listRecentSales(50));
-      setCheckoutOpen(false);
-      setSuccessOpen(true);
-      setStatus(`Đã lưu ${sale.sale.invoice_code}. Hóa đơn có trong mục Hóa đơn đã lưu bên dưới.`);
+      setSavedSales(await listRecentSales(100));
+      setStatus(`Đã lưu ${sale.sale.invoice_code}.`);
     } catch (caught) {
       console.error(caught);
       setStatus('');
@@ -337,18 +394,35 @@ export function POSPage() {
     setDiscountAmount('0');
     setShippingFee('0');
     setPaymentMethod('cash');
+    setCashReceived('');
+    setDebtDeposit('0');
+  }
+
+  function startNewSale() {
+    setCompletedSale(null);
+    setCart([]);
+    resetCheckoutFields();
+    setCatalogQuery('');
+    setView('sale');
+    setStatus('Đã sẵn sàng tạo đơn mới.');
+    setError('');
   }
 
   async function showInvoicePreview(sale: HydratedSale) {
-    const printer = await getPrinterSettings();
-    setPreviewSale(sale);
-    setPreviewMarkup(renderInvoiceHtml(sale, shop, printer, { autoPrint: false }));
-    setPreviewOpen(true);
+    try {
+      const printer = await getPrinterSettings();
+      setPreviewSale(sale);
+      setPreviewMarkup(renderInvoiceHtml(sale, shop, printer, { autoPrint: false }));
+      setPreviewOpen(true);
+      setError('');
+    } catch (caught) {
+      console.error(caught);
+      setError('Không tạo được bản xem trước hóa đơn.');
+    }
   }
 
   async function previewSavedSale(saleId: string) {
     try {
-      setError('');
       await showInvoicePreview(await getSaleById(saleId));
     } catch (caught) {
       console.error(caught);
@@ -380,23 +454,24 @@ export function POSPage() {
     }
   }
 
-  const paidNow = paymentMethod === 'debt' ? 0 : totals.total;
-  const remaining = Math.max(0, totals.total - paidNow);
+  function openSavedInvoice(invoiceCode: string) {
+    setInvoiceQuery(invoiceCode);
+    setView('invoices');
+  }
 
   return (
     <>
       <div className="page-title-row pos-page-heading">
         <div>
-          <span className="eyebrow">Bán hàng</span>
-          <h2>Tạo hóa đơn theo 3 bước</h2>
-          <p className="setup-muted">Chọn hàng, kiểm tra giỏ rồi xác nhận thanh toán. Hóa đơn lưu xong có thể tìm, xem và in lại.</p>
+          <span className="eyebrow">POS</span>
+          <h2>{view === 'sale' ? 'Bán hàng tại quầy' : 'Tra cứu hóa đơn'}</h2>
+          <p className="setup-muted">
+            {view === 'sale'
+              ? 'Giỏ hàng, cách tính tiền và nút thanh toán luôn nằm ở cột bên phải.'
+              : 'Tìm theo mã hóa đơn, tên khách hoặc số điện thoại.'}
+          </p>
         </div>
-      </div>
-
-      <div className="pos-flow-strip" aria-label="Quy trình bán hàng">
-        <div className="is-active"><span>1</span><strong>Chọn hàng</strong><small>Thêm sản phẩm hoặc mẫu hoa</small></div>
-        <div className={cart.length > 0 ? 'is-active' : ''}><span>2</span><strong>Kiểm tra đơn</strong><small>Sửa số lượng và giá bán</small></div>
-        <div><span>3</span><strong>Thanh toán</strong><small>Khách hàng, giảm giá và phương thức thu</small></div>
+        <PillTabs value={view} onChange={setView} options={[...posViews]} />
       </div>
 
       {(status || error) && (
@@ -406,171 +481,183 @@ export function POSPage() {
         </div>
       )}
 
-      <div className="pos-workspace">
-        <SoftCard className="pos-catalog-panel" title="Bước 1 — Chọn hàng" description="Bấm vào thẻ để thêm vào đơn. Bấm lần nữa để tăng số lượng.">
-          <div className="pos-catalog-toolbar">
-            <PillTabs value={catalogTab} onChange={setCatalogTab} options={[...catalogTabs]} />
-            <TextField value={catalogQuery} placeholder="Tìm tên, mã SKU hoặc nhóm hàng..." onChange={(event) => setCatalogQuery(event.target.value)} />
-          </div>
-
-          {catalogTab === 'items' && (
-            <div className="pos-product-grid">
-              {visibleItems.length === 0 && <p className="setup-muted">Không tìm thấy sản phẩm hoặc dịch vụ phù hợp.</p>}
-              {visibleItems.map((item) => (
-                <button key={item.id} type="button" className="pos-product-card" onClick={() => addCatalogItem(item)}>
-                  {itemPhotoUrls[item.id] ? (
-                    <img className="pos-product-image" src={itemPhotoUrls[item.id]} alt={item.name} />
-                  ) : (
-                    <div className="pos-product-image pos-product-image-placeholder" aria-hidden="true">✦</div>
-                  )}
-                  <Badge tone={item.item_type === 'service' ? 'sage' : 'lavender'}>
-                    {item.item_type === 'service' ? 'Dịch vụ' : item.category_name ?? 'Sản phẩm'}
-                  </Badge>
-                  <strong>{item.name}</strong>
-                  <span>{formatCurrency(item.default_sale_price)}</span>
-                </button>
-              ))}
+      {view === 'sale' ? (
+        <div className="pos-standard-layout">
+          <SoftCard className="pos-standard-catalog" title="Danh mục bán" description="Bấm sản phẩm để thêm; bấm lại để tăng số lượng.">
+            <div className="pos-catalog-toolbar">
+              <PillTabs value={catalogView} onChange={setCatalogView} options={[...catalogViews]} />
+              <TextField value={catalogQuery} placeholder="Tìm tên, SKU hoặc nhóm hàng..." onChange={(event) => setCatalogQuery(event.target.value)} />
             </div>
-          )}
 
-          {catalogTab === 'recipes' && (
-            <div className="pos-product-grid">
-              {visibleRecipes.length === 0 && <p className="setup-muted">Chưa có mẫu hoa phù hợp.</p>}
-              {visibleRecipes.map((recipe) => (
-                <button key={recipe.id} type="button" className="pos-product-card pos-recipe-card" onClick={() => addRecipe(recipe)}>
-                  <Badge tone="pink">{recipe.size_label ?? 'Mẫu hoa'}</Badge>
-                  <strong>{recipe.name}</strong>
-                  <span>{recipe.color_tone ?? 'Chưa chọn tone'}</span>
-                  <span>{formatCurrency(recipe.suggested_sale_price)}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="pos-custom-line">
-            <div>
-              <strong>Dòng bán tùy chỉnh</strong>
-              <span>Dùng khi khách đặt bó hoa theo ngân sách riêng.</span>
-            </div>
-            <TextField value={customName} onChange={(event) => setCustomName(event.target.value)} />
-            <TextField type="number" min={0} value={customPrice} onChange={(event) => setCustomPrice(event.target.value)} />
-            <Button variant="soft" onClick={addCustomLine}>Thêm vào đơn</Button>
-          </div>
-        </SoftCard>
-
-        <SoftCard className="pos-order-panel" title="Bước 2 — Đơn hiện tại" description={`${cart.length} dòng • ${cartQuantity} sản phẩm`}>
-          <div className="pos-order-lines">
-            {cart.length === 0 && (
-              <div className="pos-empty-cart">
-                <span>Giỏ hàng đang trống</span>
-                <p>Chọn sản phẩm ở bên trái để bắt đầu.</p>
+            {catalogView === 'items' ? (
+              <div className="pos-product-grid">
+                {visibleItems.length === 0 && <p className="setup-muted">Không tìm thấy sản phẩm phù hợp.</p>}
+                {visibleItems.map((item) => (
+                  <button key={item.id} type="button" className="pos-product-card" onClick={() => addCatalogItem(item)}>
+                    {itemPhotoUrls[item.id] ? (
+                      <img className="pos-product-image" src={itemPhotoUrls[item.id]} alt={item.name} />
+                    ) : (
+                      <div className="pos-product-image pos-product-image-placeholder" aria-hidden="true">✦</div>
+                    )}
+                    <Badge tone={item.item_type === 'service' ? 'sage' : 'lavender'}>
+                      {item.item_type === 'service' ? 'Dịch vụ' : item.category_name ?? 'Sản phẩm'}
+                    </Badge>
+                    <strong>{item.name}</strong>
+                    <span>{formatCurrency(item.default_sale_price)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="pos-product-grid">
+                {visibleRecipes.length === 0 && <p className="setup-muted">Chưa có mẫu hoa phù hợp.</p>}
+                {visibleRecipes.map((recipe) => (
+                  <button key={recipe.id} type="button" className="pos-product-card pos-recipe-card" onClick={() => addRecipe(recipe)}>
+                    <Badge tone="pink">{recipe.size_label ?? 'Mẫu hoa'}</Badge>
+                    <strong>{recipe.name}</strong>
+                    <span>{recipe.color_tone ?? 'Chưa chọn tone'}</span>
+                    <span>{formatCurrency(recipe.suggested_sale_price)}</span>
+                  </button>
+                ))}
               </div>
             )}
 
-            {cart.map((line) => (
-              <div className="pos-order-line" key={line.id}>
-                <div className="pos-order-line-name">
-                  <strong>{line.itemName}</strong>
-                  <span>{formatCurrency(lineTotal(line))}</span>
+            <div className="pos-custom-line">
+              <div>
+                <strong>Dòng bán tùy chỉnh</strong>
+                <span>Dùng cho bó hoa theo ngân sách riêng.</span>
+              </div>
+              <TextField value={customName} onChange={(event) => setCustomName(event.target.value)} />
+              <TextField type="number" min={0} value={customPrice} onChange={(event) => setCustomPrice(event.target.value)} />
+              <Button variant="soft" onClick={addCustomLine}>Thêm</Button>
+            </div>
+          </SoftCard>
+
+          <aside className="pos-checkout-column">
+            {completedSale ? (
+              <SoftCard className="pos-completed-panel" title="Thanh toán thành công" description="Hóa đơn đã lưu vào SQLite local.">
+                <div className="pos-success-mark">✓</div>
+                <strong className="pos-completed-code">{completedSale.sale.invoice_code}</strong>
+                <div className="pos-completed-summary">
+                  <div><span>Khách hàng</span><strong>{completedSale.sale.customer_name ?? 'Khách lẻ'}</strong></div>
+                  <div><span>Tổng thanh toán</span><strong>{formatCurrency(completedSale.sale.total)}</strong></div>
+                  <div><span>Trạng thái</span><strong>{paymentStatusLabel(completedSale.sale.payment_status)}</strong></div>
                 </div>
-                <TextField label="SL" type="number" min={0.01} step={0.01} value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} />
-                <TextField label="Đơn giá" type="number" min={0} value={line.unitPrice} onChange={(event) => updateLine(line.id, { unitPrice: Number(event.target.value) })} />
-                <Button variant="ghost" onClick={() => removeLine(line.id)}>Xóa</Button>
+                <div className="pos-completed-actions">
+                  <Button variant="soft" onClick={() => showInvoicePreview(completedSale)}>Xem hóa đơn</Button>
+                  <Button onClick={() => printSale(completedSale)}>In hóa đơn</Button>
+                  <Button variant="ghost" onClick={startNewSale}>Đơn mới</Button>
+                  <Button variant="ghost" onClick={() => openSavedInvoice(completedSale.sale.invoice_code)}>Mở trong Hóa đơn</Button>
+                </div>
+              </SoftCard>
+            ) : (
+              <SoftCard className="pos-checkout-panel" title="Đơn đang bán" description={`${cart.length} dòng • ${cartQuantity} sản phẩm`}>
+                <div className="pos-checkout-body">
+                  <div className="pos-cart-header">
+                    <strong>Giỏ hàng</strong>
+                    <Button variant="ghost" onClick={clearCurrentSale} disabled={cart.length === 0}>Xóa đơn</Button>
+                  </div>
+
+                  <div className="pos-order-lines">
+                    {cart.length === 0 && (
+                      <div className="pos-empty-cart">
+                        <span>Chưa có sản phẩm</span>
+                        <p>Chọn sản phẩm ở cột bên trái.</p>
+                      </div>
+                    )}
+                    {cart.map((line) => (
+                      <div className="pos-order-line" key={line.id}>
+                        <div className="pos-order-line-name">
+                          <strong>{line.itemName}</strong>
+                          <span>{formatCurrency(lineTotal(line))}</span>
+                        </div>
+                        <TextField label="SL" type="number" min={0.01} step={0.01} value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} />
+                        <TextField label="Giá" type="number" min={0} value={line.unitPrice} onChange={(event) => updateLine(line.id, { unitPrice: Number(event.target.value) })} />
+                        <Button variant="ghost" onClick={() => removeLine(line.id)}>Xóa</Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pos-checkout-section">
+                    <h3>Khách hàng</h3>
+                    <SelectField label="Khách có sẵn" value={selectedCustomerId} options={customerOptions} onChange={(event) => selectCustomer(event.target.value)} />
+                    <div className="pos-two-fields">
+                      <TextField label="Tên khách" value={customerName} placeholder="Khách lẻ" onChange={(event) => setCustomerName(event.target.value)} />
+                      <TextField label="SĐT" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} />
+                    </div>
+                    <TextArea label="Ghi chú" value={note} onChange={(event) => setNote(event.target.value)} />
+                  </div>
+
+                  <div className="pos-checkout-section">
+                    <h3>Tính tiền</h3>
+                    <div className="pos-two-fields">
+                      <TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} />
+                      <TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} />
+                    </div>
+                    <SelectField label="Phương thức" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} />
+                    {paymentMethod === 'cash' && (
+                      <TextField label="Khách đưa" type="number" min={0} value={cashReceived === '' ? totals.total : cashReceived} onChange={(event) => setCashReceived(event.target.value)} />
+                    )}
+                    {paymentMethod === 'debt' && (
+                      <TextField label="Đã thu trước" type="number" min={0} max={totals.total} value={debtDeposit} onChange={(event) => setDebtDeposit(event.target.value)} />
+                    )}
+                  </div>
+                </div>
+
+                <div className="pos-checkout-footer">
+                  <div className="pos-payment-breakdown">
+                    <div><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div>
+                    <div><span>Chiết khấu</span><strong>-{formatCurrency(totals.discountAmount)}</strong></div>
+                    <div><span>Phí giao</span><strong>{formatCurrency(totals.shippingFee)}</strong></div>
+                    <div className="is-total"><span>TỔNG THANH TOÁN</span><strong>{formatCurrency(totals.total)}</strong></div>
+                    {paymentMethod === 'cash' && checkoutAmounts.returnedAmount > 0 && (
+                      <div className="is-change"><span>Tiền thừa</span><strong>{formatCurrency(checkoutAmounts.returnedAmount)}</strong></div>
+                    )}
+                    {checkoutAmounts.remainingAmount > 0 && paymentMethod === 'debt' && (
+                      <div className="is-debt"><span>Còn nợ</span><strong>{formatCurrency(checkoutAmounts.remainingAmount)}</strong></div>
+                    )}
+                  </div>
+                  <Button className="pos-primary-checkout" onClick={checkoutAndSave} disabled={cart.length === 0 || saving}>
+                    {saving
+                      ? 'ĐANG LƯU...'
+                      : paymentMethod === 'debt'
+                        ? `LƯU CÔNG NỢ • ${formatCurrency(totals.total)}`
+                        : `THANH TOÁN & LƯU • ${formatCurrency(totals.total)}`}
+                  </Button>
+                  <p className="pos-checkout-hint">Nút in chỉ xuất hiện sau khi hóa đơn được lưu thành công.</p>
+                </div>
+              </SoftCard>
+            )}
+          </aside>
+        </div>
+      ) : (
+        <SoftCard className="pos-invoice-history" title="Hóa đơn đã lưu" description="Hóa đơn mới nhất nằm trên cùng. Xem trước mở bằng popup trong app.">
+          <div className="pos-invoice-search">
+            <TextField value={invoiceQuery} placeholder="Tìm mã hóa đơn, tên khách hoặc SĐT..." onChange={(event) => setInvoiceQuery(event.target.value)} />
+            <Badge tone="lavender">{savedSales.length} kết quả</Badge>
+          </div>
+          <div className="pos-invoice-list">
+            {savedSales.length === 0 && <p className="setup-muted">Không tìm thấy hóa đơn phù hợp.</p>}
+            {savedSales.map((sale) => (
+              <div className="pos-invoice-row" key={sale.id}>
+                <div>
+                  <strong>{sale.invoice_code}</strong>
+                  <span>{formatInvoiceDate(sale.sale_date)}</span>
+                </div>
+                <div>
+                  <strong>{sale.customer_name ?? 'Khách lẻ'}</strong>
+                  <span>{sale.customer_phone ?? 'Không có SĐT'}</span>
+                </div>
+                <div className="pos-invoice-amount">
+                  <span>{paymentStatusLabel(sale.payment_status)}</span>
+                  <strong>{formatCurrency(sale.total)}</strong>
+                </div>
+                <Button variant="soft" onClick={() => previewSavedSale(sale.id)}>Xem</Button>
+                <Button onClick={() => printSavedSale(sale.id)}>In lại</Button>
               </div>
             ))}
           </div>
-
-          <div className="pos-order-total">
-            <span>Tạm tính đơn hàng</span>
-            <strong>{formatCurrency(totals.subtotal)}</strong>
-          </div>
-          <Button className="pos-checkout-button" onClick={openCheckout} disabled={cart.length === 0}>
-            Tiếp tục thanh toán
-          </Button>
         </SoftCard>
-      </div>
-
-      <SoftCard className="pos-invoice-history" title="Hóa đơn đã lưu" description="Tìm theo mã hóa đơn, tên khách hoặc số điện thoại. Hóa đơn mới nhất nằm trên cùng.">
-        <div className="pos-invoice-search">
-          <TextField value={invoiceQuery} placeholder="Ví dụ: BLM-2026..., Khách hàng mẫu..." onChange={(event) => setInvoiceQuery(event.target.value)} />
-          <Badge tone="lavender">{savedSales.length} kết quả</Badge>
-        </div>
-
-        <div className="pos-invoice-list">
-          {savedSales.length === 0 && <p className="setup-muted">Không tìm thấy hóa đơn phù hợp.</p>}
-          {savedSales.map((sale) => (
-            <div className="pos-invoice-row" key={sale.id}>
-              <div>
-                <strong>{sale.invoice_code}</strong>
-                <span>{formatInvoiceDate(sale.sale_date)}</span>
-              </div>
-              <div>
-                <strong>{sale.customer_name ?? 'Khách lẻ'}</strong>
-                <span>{sale.customer_phone ?? 'Không có SĐT'}</span>
-              </div>
-              <div className="pos-invoice-amount">
-                <span>{paymentStatusLabel(sale.payment_status)}</span>
-                <strong>{formatCurrency(sale.total)}</strong>
-              </div>
-              <Button variant="soft" onClick={() => previewSavedSale(sale.id)}>Xem hóa đơn</Button>
-              <Button onClick={() => printSavedSale(sale.id)}>In lại</Button>
-            </div>
-          ))}
-        </div>
-      </SoftCard>
-
-      <Dialog open={checkoutOpen} title="Bước 3 — Kiểm tra và thanh toán" onClose={() => setCheckoutOpen(false)}>
-        <div className="pos-checkout-dialog">
-          <section className="pos-checkout-section">
-            <h3>Khách hàng</h3>
-            <SelectField label="Chọn khách có sẵn" value={selectedCustomerId} options={customerOptions} onChange={(event) => selectCustomer(event.target.value)} />
-            <div className="page-grid">
-              <div className="span-6"><TextField label="Tên khách" value={customerName} placeholder="Để trống nếu là khách lẻ" onChange={(event) => setCustomerName(event.target.value)} /></div>
-              <div className="span-6"><TextField label="Số điện thoại" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} /></div>
-            </div>
-            <TextArea label="Ghi chú hóa đơn" value={note} placeholder="Lời nhắn, yêu cầu giao hàng..." onChange={(event) => setNote(event.target.value)} />
-          </section>
-
-          <section className="pos-checkout-section">
-            <h3>Cách tính tiền</h3>
-            <div className="page-grid">
-              <div className="span-6"><TextField label="Chiết khấu" type="number" min={0} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} /></div>
-              <div className="span-6"><TextField label="Phí giao" type="number" min={0} value={shippingFee} onChange={(event) => setShippingFee(event.target.value)} /></div>
-            </div>
-            <SelectField label="Phương thức thanh toán" value={paymentMethod} options={paymentOptions} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} />
-
-            <div className="pos-payment-breakdown">
-              <div><span>Tạm tính</span><strong>{formatCurrency(totals.subtotal)}</strong></div>
-              <div><span>Trừ chiết khấu</span><strong>-{formatCurrency(totals.discountAmount)}</strong></div>
-              <div><span>Cộng phí giao</span><strong>{formatCurrency(totals.shippingFee)}</strong></div>
-              <div className="is-total"><span>Khách phải trả</span><strong>{formatCurrency(totals.total)}</strong></div>
-              <div><span>Thu ngay bằng {paymentLabels[paymentMethod]}</span><strong>{formatCurrency(paidNow)}</strong></div>
-              {remaining > 0 && <div className="is-debt"><span>Ghi công nợ</span><strong>{formatCurrency(remaining)}</strong></div>}
-            </div>
-          </section>
-
-          <div className="pos-dialog-actions">
-            <Button variant="ghost" onClick={() => setCheckoutOpen(false)}>Quay lại sửa đơn</Button>
-            <Button onClick={saveSale} disabled={saving}>{saving ? 'Đang lưu...' : `Lưu hóa đơn • ${formatCurrency(totals.total)}`}</Button>
-          </div>
-        </div>
-      </Dialog>
-
-      <Dialog open={successOpen} title="Hóa đơn đã được lưu" onClose={() => setSuccessOpen(false)}>
-        {lastSale && (
-          <div className="pos-success-dialog">
-            <div className="pos-success-mark">✓</div>
-            <strong>{lastSale.sale.invoice_code}</strong>
-            <span>{lastSale.sale.customer_name ?? 'Khách lẻ'} • {formatCurrency(lastSale.sale.total)}</span>
-            <p>Hóa đơn đã nằm trong mục “Hóa đơn đã lưu” và có thể tìm lại bất cứ lúc nào.</p>
-            <div className="pos-dialog-actions">
-              <Button variant="soft" onClick={() => showInvoicePreview(lastSale)}>Xem hóa đơn</Button>
-              <Button onClick={() => printSale(lastSale)}>In hóa đơn</Button>
-              <Button variant="ghost" onClick={() => setSuccessOpen(false)}>Tạo đơn mới</Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
+      )}
 
       <Dialog open={previewOpen} title={`Xem trước hóa đơn${previewSale ? ` — ${previewSale.sale.invoice_code}` : ''}`} onClose={() => setPreviewOpen(false)}>
         <div className="pos-preview-dialog">
