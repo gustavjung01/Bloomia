@@ -35,21 +35,75 @@ body::before {
   background-image: var(--pattern-floral), var(--pattern-floral);
   background-position: 32px 24px, 150px 128px;
   background-size: 236px 236px, 318px 318px;
-  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.72), transparent 68%);
-  opacity: 0.36;
+  -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.82), transparent 74%);
+  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.82), transparent 74%);
+  opacity: 0.48;
   z-index: 0;
 }
 
 body::after {
-  background: radial-gradient(circle at 8% 92%, rgba(217, 95, 141, 0.14), transparent 24%),
-    radial-gradient(circle at 96% 78%, rgba(139, 111, 192, 0.14), transparent 30%),
+  background: radial-gradient(circle at 8% 92%, rgba(217, 95, 141, 0.17), transparent 24%),
+    radial-gradient(circle at 96% 78%, rgba(139, 111, 192, 0.17), transparent 30%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.28), transparent 28%, rgba(255, 255, 255, 0.22));
-  opacity: 0.9;
+  opacity: 0.94;
   z-index: 0;
 }
 
 #root {
   isolation: isolate;
+  position: relative;
+  z-index: 1;
+}
+
+.page-content,
+.sidebar {
+  isolation: isolate;
+  position: relative;
+}
+
+.page-content::before,
+.page-content::after,
+.sidebar::before {
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
+  z-index: 0;
+}
+
+.page-content::before {
+  color: rgba(217, 95, 141, 0.12);
+  content: '❀';
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 210px;
+  line-height: 1;
+  right: -18px;
+  top: -28px;
+  transform: rotate(12deg);
+}
+
+.page-content::after {
+  bottom: 8px;
+  color: rgba(139, 111, 192, 0.1);
+  content: '✿  ❁';
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 74px;
+  left: 22px;
+  letter-spacing: 14px;
+  transform: rotate(-8deg);
+}
+
+.sidebar::before {
+  color: rgba(95, 143, 114, 0.13);
+  content: '❦';
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 92px;
+  right: -12px;
+  top: 54px;
+  transform: rotate(18deg);
+}
+
+.page-content > *,
+.sidebar > * {
   position: relative;
   z-index: 1;
 }
