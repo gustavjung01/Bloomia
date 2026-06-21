@@ -1,0 +1,95 @@
+.page-grid:has(> .soft-card .device-payment-preview) {
+  align-items: stretch;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(1) {
+  grid-column: span 4;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(2) {
+  grid-column: span 5;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(3) {
+  grid-column: span 3;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card {
+  height: calc(100vh - 132px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card > .setup-form-grid {
+  max-height: calc(100vh - 205px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .setup-checkbox {
+  min-height: 36px;
+  padding-block: 7px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .system-info-list {
+  margin-bottom: 4px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .system-info-list div {
+  padding: 7px 8px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(3) {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .device-payment-preview {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .device-payment-preview > .setup-form-grid {
+  gap: 7px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .payment-qr-preview {
+  flex: 1 1 auto;
+  min-height: 150px;
+  padding: 8px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) .payment-qr-preview img {
+  max-height: 210px;
+}
+
+.page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(3) .setup-row-actions {
+  margin-top: 8px !important;
+}
+
+@media (max-width: 1320px) {
+  .page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(1) {
+    grid-column: span 5;
+  }
+
+  .page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(2) {
+    grid-column: span 7;
+  }
+
+  .page-grid:has(> .soft-card .device-payment-preview) > .soft-card:nth-child(3) {
+    grid-column: span 12;
+    height: auto;
+  }
+
+  .page-grid:has(> .soft-card .device-payment-preview) .device-payment-preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  }
+}
