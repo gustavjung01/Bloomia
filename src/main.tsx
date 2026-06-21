@@ -7,5 +7,6 @@ import './styles/layout.css';
 import './styles/components.css';
 import './styles/posLifecycle.css';
 import './styles/workspaceDensity.css';
+import './styles/licenseActivation.css';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<App />);
