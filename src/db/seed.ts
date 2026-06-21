@@ -27,6 +27,34 @@ export async function seedProductionDefaults(db: QueryableDatabase) {
   }
 
   await db.execute(`INSERT OR IGNORE INTO printer_settings (id, paper_size, is_default) VALUES ('printer-default', '80mm', 1)`);
+  await seedFirstRunSamples(db);
+}
+
+async function seedFirstRunSamples(db: QueryableDatabase) {
+  const itemRows = await db.select<{ count: number }>('SELECT COUNT(*) AS count FROM items');
+  if (Number(itemRows[0]?.count ?? 0) === 0) {
+    await db.execute(
+      `INSERT OR IGNORE INTO items
+       (id, name, sku, item_type, category_id, unit_id, default_sale_price, default_purchase_price, is_stock_tracked, is_active, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ['item-sample-pastel-bouquet', 'Bó hoa pastel (Mẫu)', 'SAMPLE-BOUQUET', 'product', 'cat-san-pham-mau', 'unit-piece', 450000, 250000, 0, 'Dữ liệu mẫu để test POS. Có thể sửa hoặc xóa.'],
+    );
+
+    await db.execute(
+      `INSERT OR IGNORE INTO items
+       (id, name, sku, item_type, category_id, unit_id, default_sale_price, default_purchase_price, is_stock_tracked, is_active, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ['item-sample-delivery', 'Phí giao hoa nội thành (Mẫu)', 'SAMPLE-DELIVERY', 'service', 'cat-dich-vu', 'unit-trip', 30000, 0, 0, 'Dữ liệu mẫu để test hóa đơn và thanh toán.'],
+    );
+  }
+
+  const customerRows = await db.select<{ count: number }>('SELECT COUNT(*) AS count FROM customers');
+  if (Number(customerRows[0]?.count ?? 0) === 0) {
+    await db.execute(
+      `INSERT OR IGNORE INTO customers (id, name, phone, address, note)
+       VALUES ('customer-sample', 'Khách hàng mẫu', NULL, NULL, 'Dữ liệu mẫu để test chọn khách trong POS. Có thể sửa hoặc xóa.')`,
+    );
+  }
 }
 
 function slugId(prefix: string, value: string) {
