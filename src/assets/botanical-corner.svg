@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 460" fill="none">
+  <defs>
+    <linearGradient id="stem" x1="306" y1="20" x2="66" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A97894"/>
+      <stop offset="1" stop-color="#78917F"/>
+    </linearGradient>
+    <radialGradient id="petal" cx="0" cy="0" r="1" gradientTransform="translate(0.5 0.5) scale(0.7)">
+      <stop stop-color="#FFF8FB"/>
+      <stop offset="1" stop-color="#E8B6C9"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M315 14C278 78 283 134 238 190C197 241 166 263 145 319C125 369 100 407 49 447" stroke="url(#stem)" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M270 96C238 74 210 79 196 112C225 124 251 117 270 96Z" fill="#E7ECDD" stroke="#78917F" stroke-width="1.5"/>
+  <path d="M250 154C279 134 306 142 318 174C288 184 265 178 250 154Z" fill="#F4DEE7" stroke="#A97894" stroke-width="1.5"/>
+  <path d="M196 242C163 219 134 226 121 260C151 272 179 264 196 242Z" fill="#E7ECDD" stroke="#78917F" stroke-width="1.5"/>
+  <path d="M154 318C185 298 213 306 224 338C194 348 169 342 154 318Z" fill="#F4DEE7" stroke="#A97894" stroke-width="1.5"/>
+  <path d="M105 383C75 360 49 367 37 398C64 410 89 404 105 383Z" fill="#E7ECDD" stroke="#78917F" stroke-width="1.5"/>
+
+  <g transform="translate(271 70)">
+    <ellipse cx="0" cy="-18" rx="10" ry="20" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="17" cy="-5" rx="10" ry="20" transform="rotate(72 17 -5)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="10" cy="15" rx="10" ry="20" transform="rotate(144 10 15)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="-11" cy="15" rx="10" ry="20" transform="rotate(-144 -11 15)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="-17" cy="-5" rx="10" ry="20" transform="rotate(-72 -17 -5)" fill="url(#petal)" stroke="#B47491"/>
+    <circle r="7" fill="#D3AC58"/>
+  </g>
+
+  <g transform="translate(171 218) scale(.78)">
+    <ellipse cx="0" cy="-18" rx="10" ry="20" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="17" cy="-5" rx="10" ry="20" transform="rotate(72 17 -5)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="10" cy="15" rx="10" ry="20" transform="rotate(144 10 15)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="-11" cy="15" rx="10" ry="20" transform="rotate(-144 -11 15)" fill="url(#petal)" stroke="#B47491"/>
+    <ellipse cx="-17" cy="-5" rx="10" ry="20" transform="rotate(-72 -17 -5)" fill="url(#petal)" stroke="#B47491"/>
+    <circle r="7" fill="#D3AC58"/>
+  </g>
+
+  <circle cx="239" cy="188" r="4" fill="#D3AC58"/>
+  <circle cx="144" cy="319" r="3.5" fill="#D3AC58"/>
+  <circle cx="88" cy="406" r="3" fill="#D3AC58"/>
+</svg>
