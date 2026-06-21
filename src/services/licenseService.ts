@@ -1,4 +1,3 @@
-import { LogicalSize } from '@tauri-apps/api/dpi';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -185,11 +184,25 @@ export async function canUseSignedOfflineLease(cache: BloomiaLicenseCache, ident
 }
 
 export async function showActivationWindow() {
-  await setWindowPresentation({ width: 650, height: 630, minWidth: 600, minHeight: 570, resizable: false, title: 'Chào mừng đến Bloomia' });
+  try {
+    const currentWindow = getCurrentWindow();
+    if (await currentWindow.isMaximized()) {
+      await currentWindow.toggleMaximize();
+    }
+  } catch {
+    // Browser preview keeps its current viewport.
+  }
 }
 
 export async function showMainBloomiaWindow() {
-  await setWindowPresentation({ width: 1440, height: 920, minWidth: 1180, minHeight: 760, resizable: true, title: 'Bloomia' });
+  try {
+    const currentWindow = getCurrentWindow();
+    if (!(await currentWindow.isMaximized())) {
+      await currentWindow.toggleMaximize();
+    }
+  } catch {
+    // Browser preview keeps its current viewport.
+  }
 }
 
 export function friendlyLicenseError(error: unknown): string {
@@ -310,26 +323,6 @@ function createDevLicenseCache(key: string, identity: BloomiaMachineIdentity): B
     lastVerifiedAt: now.toISOString(),
     planCode: 'development',
   };
-}
-
-async function setWindowPresentation(options: {
-  width: number;
-  height: number;
-  minWidth: number;
-  minHeight: number;
-  resizable: boolean;
-  title: string;
-}) {
-  try {
-    const currentWindow = getCurrentWindow();
-    await currentWindow.setMinSize(new LogicalSize(options.minWidth, options.minHeight));
-    await currentWindow.setResizable(options.resizable);
-    await currentWindow.setSize(new LogicalSize(options.width, options.height));
-    await currentWindow.setTitle(options.title);
-    await currentWindow.center();
-  } catch {
-    // Browser preview and restricted window environments keep rendering the same UI.
-  }
 }
 
 function asObject(value: unknown): Record<string, unknown> {
