@@ -23,13 +23,12 @@ export function renderInvoiceHtml(
   const paperSize = printer?.paper_size ?? '80mm';
   const width = paperSize === '58mm' ? '58mm' : paperSize === 'A4' ? '190mm' : '80mm';
   const paidAmount = sale.payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const receivedAmount = sale.payments.reduce(
-    (sum, payment) => sum + (payment.received_amount > 0 ? payment.received_amount : payment.amount),
-    0,
-  );
+  const receivedAmount = sale.payments.reduce((sum, payment) => sum + (payment.received_amount > 0 ? payment.received_amount : payment.amount), 0);
   const returnedAmount = sale.payments.reduce((sum, payment) => sum + (payment.returned_amount ?? 0), 0);
   const remainingAmount = Math.max(0, sale.sale.total - paidAmount);
-  const paymentMethod = sale.payments[0]?.method;
+  const payment = sale.payments[0];
+  const paymentMethod = payment?.method;
+  const showTransferImage = Boolean(payment?.qr_image_url && (paymentMethod === 'bank_transfer' || remainingAmount > 0));
   const autoPrintScript = options.autoPrint === false ? '' : '<script>window.onload = () => setTimeout(() => window.print(), 150);</script>';
 
   return `<!doctype html>
@@ -54,6 +53,8 @@ export function renderInvoiceHtml(
     .row span:last-child { text-align: right; }
     .total { font-weight: 700; font-size: 16px; border-top: 1px solid #d8ccd6; padding-top: 7px; margin-top: 7px; }
     .remaining { color: #b05d7a; font-weight: 700; }
+    .transfer-image { border-top: 1px dashed #cfc2ce; margin-top: 12px; padding-top: 10px; text-align: center; }
+    .transfer-image img { display: block; margin: 8px auto; max-width: 220px; width: 100%; }
     .footer { border-top: 1px dashed #cfc2ce; margin-top: 14px; padding-top: 10px; text-align: center; }
     @media print { button { display: none; } .invoice { margin: 0; padding: 0; } }
   </style>
@@ -73,20 +74,8 @@ export function renderInvoiceHtml(
     ${sale.sale.customer_phone ? `<div class="muted">SĐT: ${escapeHtml(sale.sale.customer_phone)}</div>` : ''}
 
     <table>
-      <thead>
-        <tr><th>Sản phẩm</th><th>SL</th><th>Tiền</th></tr>
-      </thead>
-      <tbody>
-        ${sale.items
-          .map(
-            (item) => `<tr>
-              <td>${escapeHtml(item.item_name)}<div class="muted">${formatCurrency(item.unit_price)}</div></td>
-              <td>${item.quantity}</td>
-              <td>${formatCurrency(item.line_total)}</td>
-            </tr>`,
-          )
-          .join('')}
-      </tbody>
+      <thead><tr><th>Sản phẩm</th><th>SL</th><th>Tiền</th></tr></thead>
+      <tbody>${sale.items.map((item) => `<tr><td>${escapeHtml(item.item_name)}<div class="muted">${formatCurrency(item.unit_price)}</div></td><td>${item.quantity}</td><td>${formatCurrency(item.line_total)}</td></tr>`).join('')}</tbody>
     </table>
 
     <section class="totals">
@@ -101,9 +90,9 @@ export function renderInvoiceHtml(
       ${remainingAmount > 0 ? `<div class="row remaining"><span>Còn nợ</span><span>${formatCurrency(remainingAmount)}</span></div>` : ''}
     </section>
 
-    <section class="footer">
-      <p>${escapeHtml(shop?.invoice_footer ?? 'Cảm ơn quý khách đã ghé Bloomia.')}</p>
-    </section>
+    ${showTransferImage ? `<section class="transfer-image"><strong>Thông tin chuyển khoản</strong><img src="${escapeHtml(payment.qr_image_url ?? '')}" alt="Mã chuyển khoản" /><div class="muted">${escapeHtml(payment.bank_name ?? payment.bank_code ?? '')} • ${escapeHtml(payment.account_number ?? '')}</div><div class="muted">${escapeHtml(payment.account_name ?? '')}</div><div class="muted">${escapeHtml(payment.transfer_reference ?? '')}</div></section>` : ''}
+
+    <section class="footer"><p>${escapeHtml(shop?.invoice_footer ?? 'Cảm ơn quý khách đã ghé Bloomia.')}</p></section>
   </main>
   ${autoPrintScript}
 </body>
@@ -111,10 +100,5 @@ export function renderInvoiceHtml(
 }
 
 function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
