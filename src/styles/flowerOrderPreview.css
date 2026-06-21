@@ -1,0 +1,142 @@
+.flower-order-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.flower-order-summary-card {
+  background: #fff;
+  border: 1px solid #e3dee1;
+  border-radius: 11px;
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+}
+
+.flower-order-summary-card > span {
+  color: #7f747c;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.flower-order-summary-card > strong {
+  color: #2c262c;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.flower-order-summary-card > small {
+  color: #91878f;
+  font-size: 10px;
+}
+
+.flower-order-action-grid {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.flower-order-action-card {
+  background: linear-gradient(150deg, #fff, #fbf7f8);
+  border: 1px solid #e4dce0;
+  border-radius: 11px;
+  color: #312a30;
+  display: grid;
+  gap: 6px;
+  min-height: 110px;
+  padding: 12px 14px;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.flower-order-action-card:hover {
+  border-color: #d8b9c5;
+  box-shadow: 0 8px 18px rgba(64, 46, 57, 0.08);
+  transform: translateY(-1px);
+}
+
+.flower-order-action-card > span {
+  color: #a84767;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flower-order-action-card > strong {
+  font-size: 14px;
+}
+
+.flower-order-action-card > p {
+  color: #817880;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.flower-order-action-card > b {
+  color: #9d3d5d;
+  font-size: 11px;
+  margin-top: auto;
+}
+
+.flower-order-list-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+.flower-order-list {
+  align-content: start;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 7px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.flower-order-form-dialog,
+.flower-order-today-dialog {
+  max-width: 980px;
+  width: min(94vw, 980px);
+}
+
+.flower-order-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.flower-order-field-wide {
+  grid-column: 1 / -1;
+}
+
+.flower-order-today-dialog .flower-order-list {
+  max-height: min(68vh, 620px);
+}
+
+@media (max-width: 1120px) {
+  .flower-order-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 760px) {
+  .flower-order-summary-card {
+    padding: 9px 11px;
+  }
+
+  .flower-order-summary-card > strong {
+    font-size: 18px;
+  }
+
+  .flower-order-action-card {
+    min-height: 92px;
+    padding: 10px 12px;
+  }
+}
