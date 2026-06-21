@@ -1,12 +1,31 @@
-import type { HydratedSale } from '../../db/repositories/salesRepository';
+import type { HydratedSale, PaymentMethod } from '../../db/repositories/salesRepository';
 import type { PrinterSettingsRecord } from '../../db/repositories/printerRepository';
 import type { ShopSettingsRecord } from '../../db/repositories/manualSetupRepository';
 import { formatCurrency } from '../../utils/format';
 
-export function renderInvoiceHtml(sale: HydratedSale, shop: ShopSettingsRecord | null, printer: PrinterSettingsRecord | null) {
+interface InvoiceRenderOptions {
+  autoPrint?: boolean;
+}
+
+const paymentLabels: Record<PaymentMethod, string> = {
+  cash: 'Tiền mặt',
+  bank_transfer: 'Chuyển khoản',
+  card: 'Thẻ',
+  debt: 'Công nợ',
+};
+
+export function renderInvoiceHtml(
+  sale: HydratedSale,
+  shop: ShopSettingsRecord | null,
+  printer: PrinterSettingsRecord | null,
+  options: InvoiceRenderOptions = {},
+) {
   const paperSize = printer?.paper_size ?? '80mm';
   const width = paperSize === '58mm' ? '58mm' : paperSize === 'A4' ? '190mm' : '80mm';
   const paidAmount = sale.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const remainingAmount = Math.max(0, sale.sale.total - paidAmount);
+  const paymentMethod = sale.payments[0]?.method;
+  const autoPrintScript = options.autoPrint === false ? '' : '<script>window.onload = () => setTimeout(() => window.print(), 150);</script>';
 
   return `<!doctype html>
 <html lang="vi">
@@ -15,8 +34,9 @@ export function renderInvoiceHtml(sale: HydratedSale, shop: ShopSettingsRecord |
   <title>${sale.sale.invoice_code}</title>
   <style>
     @page { size: ${paperSize === 'A4' ? 'A4' : width} auto; margin: 8mm; }
-    body { font-family: Arial, sans-serif; color: #2e2630; margin: 0; }
-    .invoice { width: ${width}; margin: 0 auto; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #2e2630; margin: 0; background: #fff; }
+    .invoice { width: ${width}; max-width: 100%; margin: 0 auto; padding: 12px; }
     .center { text-align: center; }
     .muted { color: #6f6270; font-size: 12px; }
     h1 { font-size: 18px; margin: 0 0 4px; }
@@ -26,9 +46,11 @@ export function renderInvoiceHtml(sale: HydratedSale, shop: ShopSettingsRecord |
     th:last-child, td:last-child { text-align: right; }
     .totals { margin-top: 10px; font-size: 13px; }
     .row { display: flex; justify-content: space-between; gap: 12px; margin: 4px 0; }
-    .total { font-weight: 700; font-size: 16px; }
+    .row span:last-child { text-align: right; }
+    .total { font-weight: 700; font-size: 16px; border-top: 1px solid #d8ccd6; padding-top: 7px; margin-top: 7px; }
+    .remaining { color: #b05d7a; font-weight: 700; }
     .footer { border-top: 1px dashed #cfc2ce; margin-top: 14px; padding-top: 10px; text-align: center; }
-    @media print { button { display: none; } .invoice { margin: 0; } }
+    @media print { button { display: none; } .invoice { margin: 0; padding: 0; } }
   </style>
 </head>
 <body>
@@ -43,6 +65,7 @@ export function renderInvoiceHtml(sale: HydratedSale, shop: ShopSettingsRecord |
     <div class="muted">Mã: ${sale.sale.invoice_code}</div>
     <div class="muted">Ngày: ${new Date(sale.sale.sale_date).toLocaleString('vi-VN')}</div>
     <div class="muted">Khách: ${escapeHtml(sale.sale.customer_name ?? 'Khách lẻ')}</div>
+    ${sale.sale.customer_phone ? `<div class="muted">SĐT: ${escapeHtml(sale.sale.customer_phone)}</div>` : ''}
 
     <table>
       <thead>
@@ -63,17 +86,19 @@ export function renderInvoiceHtml(sale: HydratedSale, shop: ShopSettingsRecord |
 
     <section class="totals">
       <div class="row"><span>Tạm tính</span><span>${formatCurrency(sale.sale.subtotal)}</span></div>
-      <div class="row"><span>Chiết khấu</span><span>${formatCurrency(sale.sale.discount_amount)}</span></div>
+      <div class="row"><span>Chiết khấu</span><span>-${formatCurrency(sale.sale.discount_amount)}</span></div>
       <div class="row"><span>Phí giao</span><span>${formatCurrency(sale.sale.shipping_fee)}</span></div>
       <div class="row total"><span>Tổng cộng</span><span>${formatCurrency(sale.sale.total)}</span></div>
-      <div class="row"><span>Đã thanh toán</span><span>${formatCurrency(paidAmount)}</span></div>
+      <div class="row"><span>Thanh toán</span><span>${paymentMethod ? paymentLabels[paymentMethod] : 'Chưa rõ'}</span></div>
+      <div class="row"><span>Đã thu</span><span>${formatCurrency(paidAmount)}</span></div>
+      ${remainingAmount > 0 ? `<div class="row remaining"><span>Còn nợ</span><span>${formatCurrency(remainingAmount)}</span></div>` : ''}
     </section>
 
     <section class="footer">
       <p>${escapeHtml(shop?.invoice_footer ?? 'Cảm ơn quý khách đã ghé Bloomia.')}</p>
     </section>
   </main>
-  <script>window.onload = () => setTimeout(() => window.print(), 150);</script>
+  ${autoPrintScript}
 </body>
 </html>`;
 }
