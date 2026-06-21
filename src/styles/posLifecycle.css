@@ -1,0 +1,66 @@
+.pos-pending-panel {
+  gap: var(--space-3);
+}
+
+.pos-lifecycle-banner {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(255, 248, 226, 0.94), rgba(255, 241, 245, 0.8));
+  border: 1px solid rgba(190, 146, 55, 0.26);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.pos-lifecycle-banner strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.pos-lifecycle-banner > span:last-child {
+  color: var(--color-ink-900);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.pos-pending-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.pos-invoice-row.lifecycle-pending_payment {
+  background: linear-gradient(90deg, rgba(255, 248, 226, 0.82), rgba(255, 255, 255, 0.68));
+  border-color: rgba(190, 146, 55, 0.22);
+}
+
+.pos-invoice-row.lifecycle-completed {
+  border-color: rgba(95, 143, 114, 0.18);
+}
+
+.pos-invoice-row.lifecycle-cancelled {
+  background: rgba(244, 240, 242, 0.72);
+  border-color: rgba(178, 89, 115, 0.18);
+  opacity: 0.86;
+}
+
+.pos-invoice-row {
+  grid-template-columns: minmax(165px, 1.2fr) minmax(135px, 0.9fr) minmax(130px, 0.72fr) repeat(5, auto);
+}
+
+.pos-invoice-row .button,
+.pos-invoice-row button {
+  white-space: nowrap;
+}
+
+@media (max-width: 1450px) {
+  .pos-invoice-row {
+    grid-template-columns: minmax(145px, 1.1fr) minmax(120px, 0.85fr) minmax(110px, 0.7fr) repeat(3, auto);
+  }
+
+  .pos-invoice-row > button:nth-last-child(-n + 3) {
+    grid-row: 2;
+  }
+}
