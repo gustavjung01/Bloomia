@@ -24,9 +24,10 @@ import {
   type UnitRecord,
 } from '../../db/repositories/manualSetupRepository';
 import { formatCurrency } from '../../utils/format';
+import { DevicePaymentSettingsPanel } from './DevicePaymentSettingsPanel';
 import { ItemPhotoPanel } from './ItemPhotoPanel';
 
-type SettingsTab = 'shop' | 'catalog' | 'items';
+type SettingsTab = 'shop' | 'catalog' | 'items' | 'devices';
 type CatalogKind = 'category' | 'unit' | 'supplier';
 type ItemFilter = ItemType | 'all';
 
@@ -156,7 +157,7 @@ export function SettingsPage() {
     <>
       <div className="page-title-row">
         <div><span className="eyebrow">Cài đặt</span><h2>Setup thủ công cho chủ tiệm</h2></div>
-        <PillTabs value={activeTab} onChange={setActiveTab} options={[{ label: 'Thông tin shop', value: 'shop' }, { label: 'Danh mục nền', value: 'catalog' }, { label: 'Hàng hóa & dịch vụ', value: 'items' }]} />
+        <PillTabs value={activeTab} onChange={setActiveTab} options={[{ label: 'Thông tin shop', value: 'shop' }, { label: 'Danh mục nền', value: 'catalog' }, { label: 'Hàng hóa & dịch vụ', value: 'items' }, { label: 'Thiết bị & thanh toán', value: 'devices' }]} />
       </div>
 
       {(status || error) && <div className="setup-status-row">{status && <Badge tone="sage">{status}</Badge>}{error && <Badge tone="peach">{error}</Badge>}</div>}
@@ -164,6 +165,7 @@ export function SettingsPage() {
       {activeTab === 'shop' && <ShopSettingsPanel shop={shop} shopForm={shopForm} setShopForm={setShopForm} onSave={handleSaveShop} />}
       {activeTab === 'catalog' && <CatalogSetupPanel categories={categories} units={units} suppliers={suppliers} categoryForm={categoryForm} unitForm={unitForm} supplierForm={supplierForm} setCategoryForm={setCategoryForm} setUnitForm={setUnitForm} setSupplierForm={setSupplierForm} onSaveCategory={handleSaveCategory} onSaveUnit={handleSaveUnit} onSaveSupplier={handleSaveSupplier} onArchive={handleArchive} />}
       {activeTab === 'items' && <><ItemSetupPanel itemForm={itemForm} setItemForm={setItemForm} items={filteredItems} itemFilter={itemFilter} setItemFilter={setItemFilter} categoryOptions={categoryOptions} unitOptions={unitOptions} onSaveItem={handleSaveItem} onArchiveItem={handleArchiveItem} /><div style={{ height: 20 }} /><div className="page-grid"><ItemPhotoPanel /></div></>}
+      {activeTab === 'devices' && <DevicePaymentSettingsPanel />}
     </>
   );
 }
