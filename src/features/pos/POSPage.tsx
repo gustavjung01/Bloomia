@@ -1,1 +1,1 @@
-export { POSPageP0 as POSPage } from './POSPageP0';
+export { POSPageLifecycle as POSPage } from './POSPageLifecycle';
