@@ -24,10 +24,17 @@
   --color-ink-300: #b8aeba;
   --color-white: #ffffff;
 
-  --gradient-page: radial-gradient(circle at 18% 10%, rgba(239, 159, 186, 0.22), transparent 32%),
-    radial-gradient(circle at 92% 5%, rgba(139, 111, 192, 0.16), transparent 30%),
-    linear-gradient(145deg, var(--color-ivory-50), #fff7fb 52%, var(--color-sage-50));
+  --gradient-page: radial-gradient(circle at 14% 8%, rgba(239, 159, 186, 0.28), transparent 30%),
+    radial-gradient(circle at 88% 4%, rgba(139, 111, 192, 0.2), transparent 28%),
+    radial-gradient(circle at 78% 92%, rgba(95, 143, 114, 0.12), transparent 34%),
+    linear-gradient(145deg, #fffaf4 0%, #fff6fb 48%, #f5fbf2 100%);
   --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.82));
+  --gradient-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(255, 247, 251, 0.58));
+  --pattern-floral: radial-gradient(circle at 50% 16%, rgba(217, 95, 141, 0.16) 0 8px, transparent 9px),
+    radial-gradient(ellipse at 32% 42%, rgba(217, 95, 141, 0.12) 0 12px, transparent 13px),
+    radial-gradient(ellipse at 68% 42%, rgba(139, 111, 192, 0.12) 0 12px, transparent 13px),
+    radial-gradient(ellipse at 42% 72%, rgba(95, 143, 114, 0.1) 0 14px, transparent 15px),
+    radial-gradient(ellipse at 58% 72%, rgba(95, 143, 114, 0.1) 0 14px, transparent 15px);
 
   --radius-xs: 10px;
   --radius-sm: 14px;
@@ -39,6 +46,7 @@
   --shadow-soft: 0 18px 45px rgba(91, 74, 88, 0.11);
   --shadow-card: 0 16px 40px rgba(91, 74, 88, 0.09);
   --shadow-glow: 0 0 0 5px rgba(217, 95, 141, 0.08);
+  --shadow-floating: 0 24px 70px rgba(91, 74, 88, 0.13);
 
   --space-1: 4px;
   --space-2: 8px;
