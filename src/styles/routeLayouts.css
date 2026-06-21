@@ -1,0 +1,106 @@
+.page-content[data-route='dashboard'] .page-workspace > .page-grid {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.page-content[data-route='dashboard'] .page-workspace > .page-grid > .soft-card:nth-child(n + 5) {
+  height: 100%;
+  overflow: hidden;
+}
+
+.page-content[data-route='dashboard'] .report-mini-list {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid {
+  grid-template-rows: minmax(170px, 1.05fr) auto minmax(150px, 0.95fr);
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid > .soft-card:nth-child(1) {
+  grid-column: 1 / 13;
+  grid-row: 1;
+  overflow: hidden;
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid > .soft-card:nth-child(2) {
+  grid-column: 1 / 6;
+  grid-row: 2;
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid > .soft-card:nth-child(3) {
+  grid-column: 6 / 13;
+  grid-row: 2;
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid > .soft-card:nth-child(4) {
+  grid-column: 1 / 7;
+  grid-row: 3;
+  overflow: hidden;
+}
+
+.page-content[data-route='inventory'] .page-workspace > .page-grid > .soft-card:nth-child(5) {
+  grid-column: 7 / 13;
+  grid-row: 3;
+  overflow: hidden;
+}
+
+.page-content[data-route='inventory'] .inventory-overview-grid,
+.page-content[data-route='inventory'] .inventory-table {
+  height: 100%;
+  max-height: none;
+}
+
+.page-content[data-route='purchase'] .page-workspace > .page-grid {
+  grid-template-rows: minmax(260px, 1.25fr) minmax(150px, 0.75fr);
+}
+
+.page-content[data-route='purchase'] .page-workspace > .page-grid > .soft-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-content[data-route='purchase'] .purchase-line-list,
+.page-content[data-route='purchase'] .inventory-table {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+.page-content[data-route='settings'] .page-workspace > .page-grid {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.page-content[data-route='settings'] .page-workspace > .page-grid > .soft-card {
+  height: 100%;
+}
+
+.page-content[data-route='customers'] .page-workspace > .soft-card,
+.page-content[data-route='recipes'] .page-workspace > .soft-card,
+.page-content[data-route='flowerOrders'] .page-workspace > .soft-card,
+.page-content[data-route='update'] .page-workspace > .soft-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content[data-route='customers'] .setup-list-tall,
+.page-content[data-route='recipes'] .setup-list-tall,
+.page-content[data-route='flowerOrders'] .setup-list-tall {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+@media (max-height: 760px) {
+  .page-content[data-route='inventory'] .page-workspace > .page-grid {
+    grid-template-rows: minmax(130px, 0.9fr) auto minmax(120px, 0.8fr);
+  }
+
+  .page-content[data-route='purchase'] .page-workspace > .page-grid {
+    grid-template-rows: minmax(220px, 1.2fr) minmax(120px, 0.65fr);
+  }
+}
