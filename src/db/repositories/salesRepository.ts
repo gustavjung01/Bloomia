@@ -32,6 +32,7 @@ export interface SaleRecord {
   invoice_code: string;
   customer_id: string | null;
   customer_name: string | null;
+  customer_phone?: string | null;
   sale_date: string;
   subtotal: number;
   discount_amount: number;
@@ -67,6 +68,13 @@ export interface HydratedSale {
   items: SaleItemRecord[];
   payments: PaymentRecord[];
 }
+
+const saleListSelect = `SELECT
+  sales.*,
+  customers.name AS customer_name,
+  customers.phone AS customer_phone
+FROM sales
+LEFT JOIN customers ON customers.id = sales.customer_id`;
 
 export async function createSale(input: CreateSaleInput) {
   if (input.lines.length === 0) throw new Error('Sale needs line items.');
@@ -107,10 +115,7 @@ export async function createSale(input: CreateSaleInput) {
 
 export async function getSaleById(id: string): Promise<HydratedSale> {
   const db = await getDatabase();
-  const saleRows = await db.select<SaleRecord>(
-    'SELECT sales.*, customers.name AS customer_name FROM sales LEFT JOIN customers ON customers.id = sales.customer_id WHERE sales.id = ? LIMIT 1',
-    [id],
-  );
+  const saleRows = await db.select<SaleRecord>(`${saleListSelect} WHERE sales.id = ? LIMIT 1`, [id]);
   const sale = saleRows[0];
   if (!sale) throw new Error(`Sale not found: ${id}`);
   const items = await db.select<SaleItemRecord>('SELECT * FROM sale_items WHERE sale_id = ? ORDER BY created_at ASC', [id]);
@@ -118,11 +123,25 @@ export async function getSaleById(id: string): Promise<HydratedSale> {
   return { sale, items, payments };
 }
 
-export async function listRecentSales(limit = 12) {
+export async function listRecentSales(limit = 50) {
   const db = await getDatabase();
+  return db.select<SaleRecord>(`${saleListSelect} ORDER BY sales.sale_date DESC LIMIT ?`, [limit]);
+}
+
+export async function searchSales(query: string, limit = 80) {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return listRecentSales(limit);
+
+  const db = await getDatabase();
+  const pattern = `%${cleanQuery}%`;
   return db.select<SaleRecord>(
-    'SELECT sales.*, customers.name AS customer_name FROM sales LEFT JOIN customers ON customers.id = sales.customer_id ORDER BY sales.sale_date DESC LIMIT ?',
-    [limit],
+    `${saleListSelect}
+     WHERE sales.invoice_code LIKE ? COLLATE NOCASE
+        OR customers.name LIKE ? COLLATE NOCASE
+        OR customers.phone LIKE ? COLLATE NOCASE
+     ORDER BY sales.sale_date DESC
+     LIMIT ?`,
+    [pattern, pattern, pattern, limit],
   );
 }
 
